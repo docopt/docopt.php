@@ -61,7 +61,21 @@ options, arguments and commands based on that. The basic idea is that
 Installation
 ===============================================================================
 
-You can just drop `docopt.php` file into your project--it is
+`docopt.php` is available on [Packagist](http://packagist.org/packages/shabbyrobe/docopt). Create a `composer.json` file for your project:
+
+```javascript
+{
+    "require": {
+        "shabbyrobe/docopt": "dev-master"
+    }
+}
+```
+
+Install using composer:
+
+	php composer.phar install
+
+Alternatively, you can just drop `docopt.php` file into your project--it is
 self-contained. [Get source on github](http://github.com/shabbyrobe/docopt.php).
 
 `docopt.php` is tested with PHP 5.3
