@@ -1,6 +1,6 @@
 <?php
 
-require('docopt.php');
+require(__DIR__.'/../src/docopt.php');
 
 $in = '';
 

@@ -1,6 +1,6 @@
 <?php
 
-require(__DIR__.'/../docopt.php');
+require(__DIR__.'/../src/docopt.php');
 
 $doc = "
 Process FILE and optionally apply correction to either left-hand side or

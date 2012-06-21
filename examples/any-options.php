@@ -1,6 +1,6 @@
 <?php
 
-require(__DIR__.'/../docopt.php');
+require(__DIR__.'/../src/docopt.php');
 
 $doc = "
 Example of program which uses [options] shortcut in pattern.
