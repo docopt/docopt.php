@@ -7,6 +7,11 @@
 > non-idiomatic to PHP, this has been done to make integrating changes more
 > efficient.
 
+> Though all of the 0.4.0 tests pass, there may still be issues. Please
+> visit the [PHP port's issues page](http://github.com/shabbyrobe/docopt.php)
+> for a list of all current known issues and caveats.
+
+
 
 Isn't it awesome how `optparse` and `argparse` generate help messages
 based on your code?!
