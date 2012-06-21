@@ -8,7 +8,7 @@
 > efficient.
 
 > Though all of the 0.4.0 tests pass, there may still be issues. Please
-> visit the [PHP port's issues page](http://github.com/shabbyrobe/docopt.php)
+> visit the [PHP port's issues page](http://github.com/docopt/docopt.php)
 > for a list of all current known issues and caveats.
 
 
@@ -61,12 +61,12 @@ options, arguments and commands based on that. The basic idea is that
 Installation
 ===============================================================================
 
-`docopt.php` is available on [Packagist](http://packagist.org/packages/shabbyrobe/docopt). Create a `composer.json` file for your project:
+`docopt.php` is available on [Packagist](http://packagist.org/packages/docopt/docopt). Create a `composer.json` file for your project:
 
 ```javascript
 {
     "require": {
-        "shabbyrobe/docopt": "dev-master"
+        "docopt/docopt": "dev-master"
     }
 }
 ```
@@ -76,7 +76,7 @@ Install using composer:
 	php composer.phar install
 
 Alternatively, you can just drop `docopt.php` file into your project--it is
-self-contained. [Get source on github](http://github.com/shabbyrobe/docopt.php).
+self-contained. [Get source on github](http://github.com/docopt/docopt.php).
 
 `docopt.php` is tested with PHP 5.3
 

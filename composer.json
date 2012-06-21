@@ -1,15 +1,15 @@
 {
-    "name": "shabbyrobe/docopt",
+    "name": "docopt/docopt",
     "type": "library",
     "description": "Port of Python's docopt for PHP 5.3",
     "keywords": ["cli","docs"],
-    "homepage": "http://github.com/shabbyrobe/docopt.php",
+    "homepage": "http://github.com/docopt/docopt.php",
     "license": "MIT",
     "authors": [
         {
             "name": "Blake Williams",
             "email": "code@shabbyrobe.org",
-            "homepage": "http://github.com/shabbyrobe/",
+            "homepage": "http://docopt.org/",
             "role": "Developer"
         }
     ],
