@@ -23,10 +23,8 @@ Options:
 
 ";
 
-try {
-    $arguments = Docopt\docopt($doc);
-    var_dump($arguments);
-}
-catch (Docopt\ExitException $ex) {
-    echo $ex->getMessage();
-}
+$arguments = Docopt\docopt($doc, array('version'=>'1.0.0rc2'));
+if ($arguments === false)
+    exit(1);
+
+var_dump($arguments);

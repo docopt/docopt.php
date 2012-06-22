@@ -832,12 +832,12 @@ function extras($help, $version, $options, $doc)
             $vfound = true;
     }
     if ($help && $ofound) {
-        print trim($doc).PHP_EOL;
-        exit;
+        ExitException::$usage = null;
+        throw new ExitException($doc);
     }
     if ($version && $vfound) {
-        print $version;
-        exit; 
+        ExitException::$usage = null;
+        throw new ExitException($version);
     }
 }
 
@@ -871,34 +871,47 @@ class Handler
     
     function handle($doc, $argv=null)
     {
-        if (!$argv && isset($_SERVER['argv']))
-            $argv = array_slice($_SERVER['argv'], 1);
-        
-        ExitException::$usage = $usage = printable_usage($doc);
-        $potOptions = parse_doc_options($doc);
-        $formalUse = formal_usage($usage);
-        $formalPattern = parse_pattern($formalUse, $potOptions);
-        
-        $argv = parse_args($argv, $potOptions);
-        extras($this->help, $this->version, $argv, $doc);
-        
-        list($matched, $left, $arguments) = $formalPattern->fix()->match($argv);
-        if ($matched && !$left) {
-            $options = array();
-            foreach ($argv as $o) {
-                if ($o instanceof Option) $options[] = $o;
+        try {
+            if (!$argv && isset($_SERVER['argv']))
+                $argv = array_slice($_SERVER['argv'], 1);
+            
+            ExitException::$usage = $usage = printable_usage($doc);
+            $potOptions = parse_doc_options($doc);
+            $formalUse = formal_usage($usage);
+            $formalPattern = parse_pattern($formalUse, $potOptions);
+            
+            $argv = parse_args($argv, $potOptions);
+            extras($this->help, $this->version, $argv, $doc);
+            
+            list($matched, $left, $arguments) = $formalPattern->fix()->match($argv);
+            if ($matched && !$left) {
+                $options = array();
+                foreach ($argv as $o) {
+                    if ($o instanceof Option) $options[] = $o;
+                }
+                $potArguments = array();
+                foreach ($formalPattern->flat() as $a) {
+                    if ($a instanceof Argument || $a instanceof Command)
+                        $potArguments[] = $a;
+                }
+                $return = array();
+                foreach (array_merge($potOptions->getArrayCopy(), $options, $potArguments, $arguments) as $a) {
+                    $return[$a->name] = $a->value;
+                }
+                return $return;
             }
-            $potArguments = array();
-            foreach ($formalPattern->flat() as $a) {
-                if ($a instanceof Argument || $a instanceof Command)
-                    $potArguments[] = $a;
-            }
-            $return = array();
-            foreach (array_merge($potOptions->getArrayCopy(), $options, $potArguments, $arguments) as $a) {
-                $return[$a->name] = $a->value;
-            }
-            return $return;
+            throw new ExitException();
         }
-        throw new ExitException();
-    }   
+        catch (ExitException $ex) {
+            // I know, I know. Control flow exceptions. This minimises the
+            // number of differences between this and the reference implementation.
+            $this->handleExit($ex);
+            return false;
+        }
+    }
+    
+    function handleExit(ExitException $ex)
+    {
+        echo $ex->getMessage().PHP_EOL;
+    }
 }

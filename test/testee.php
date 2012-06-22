@@ -8,15 +8,13 @@ while (!feof(STDIN)) {
     $in .= fread(STDIN, 1024);
 }
 
-try {
-    $result = Docopt\docopt($in);
-    if (empty($result))
-        echo '{}';
-    else
-        echo json_encode($result);
-}
-catch (Docopt\ExitException $ex) {
+ob_start();
+$result = Docopt\docopt($in);
+$out = ob_end_clean();
+
+if ($result === false)
     print '"user-error"';
-    if (getenv('DOCOPT_DEBUG')==1)
-        echo $ex;
-}
+elseif (empty($result))
+    echo '{}';
+else
+    echo json_encode($result);
