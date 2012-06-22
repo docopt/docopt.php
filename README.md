@@ -51,8 +51,11 @@ Options:
 
 require('path/to/src/docopt.php');
 
-$result = Docopt\docopt($doc, array('version'=>'Naval Fate 2.0'));
-var_dump($result);
+$args = Docopt\docopt($doc, array('version'=>'Naval Fate 2.0'));
+foreach ($args as $k=>$v) {
+    echo $k;
+    var_dump($v);
+}
 ```
 
 Beat that! The option parser is generated based on the docstring above that is
@@ -66,7 +69,9 @@ options, arguments and commands based on that. The basic idea is that
 Installation
 ===============================================================================
 
-`docopt.php` is available on [Packagist](http://packagist.org/packages/docopt/docopt). Create a `composer.json` file for your project:
+`docopt.php` is available on 
+[Packagist](http://packagist.org/packages/docopt/docopt). Create a 
+`composer.json` file for your project:
 
 ```javascript
 {
@@ -97,7 +102,7 @@ $params = array(
 	'help'=>true,
 	'version'=>null,
 );
-$arguments = Docopt\docopt($doc, $params);
+$args = Docopt\docopt($doc, $params);
 ```
 
 `docopt` takes 1 required and 1 optional argument:
@@ -122,8 +127,8 @@ $doc = "Usage: my_program.php [-hso FILE] [--quiet | --verbose] [INPUT ...]
 ```
 
 - `argv` is an optional argument vector; by default it is the argument vector
-  passed to your program (`array_slice($_SERVER['argv'], 1)`). You can supply it with the list of
-  strings, e.g. `array('--verbose', '-o', 'hai.txt')`.
+  passed to your program (`array_slice($_SERVER['argv'], 1)`). You can supply 
+  it with the list of strings, e.g. `array('--verbose', '-o', 'hai.txt')`.
 
 - `help`, by default `true`, specifies whether the parser should
   automatically print the help message (supplied as `doc`) and terminate,
@@ -143,8 +148,8 @@ Note, when `docopt` is set to automatically handle `-h`, `--help` and
 `--version` options, you still need to mention them in usage pattern for
 this to work. Also, for your users to know about them.
 
-The **return** value is just a dictionary with options, arguments and commands,
-with keys spelled exactly like in a help message
+The **return** value behaves just like an associative array, with options, 
+arguments and commands, with keys spelled exactly like in a help message
 (long versions of options are given priority). For example, if you invoke
 the top example as::
 
@@ -320,4 +325,5 @@ The rules are as follows:
 Development
 ===============================================================================
 
-See the [python version's page](http://github.com/docopt/docopt>) for more info on developing.
+See the [python version's page](http://github.com/docopt/docopt>) for more info 
+on developing.

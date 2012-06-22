@@ -45,9 +45,12 @@ class ExitException extends \RuntimeException
 {
     public static $usage;
     
-    public function __construct($message=null)
+    public $status;
+    
+    public function __construct($message=null, $status=1)
     {
         parent::__construct(trim($message.PHP_EOL.static::$usage));
+        $this->status = $status;
     }
 }
 
@@ -833,11 +836,11 @@ function extras($help, $version, $options, $doc)
     }
     if ($help && $ofound) {
         ExitException::$usage = null;
-        throw new ExitException($doc);
+        throw new ExitException($doc, 0);
     }
     if ($version && $vfound) {
         ExitException::$usage = null;
-        throw new ExitException($version);
+        throw new ExitException($version, 0);
     }
 }
 
@@ -860,6 +863,7 @@ function docopt($doc, $params=array())
  */
 class Handler
 {
+    public $exit = true;
     public $help = true;
     public $version;
     
@@ -898,20 +902,68 @@ class Handler
                 foreach (array_merge($potOptions->getArrayCopy(), $options, $potArguments, $arguments) as $a) {
                     $return[$a->name] = $a->value;
                 }
-                return $return;
+                return new Response($return);
             }
             throw new ExitException();
         }
         catch (ExitException $ex) {
-            // I know, I know. Control flow exceptions. This minimises the
-            // number of differences between this and the reference implementation.
             $this->handleExit($ex);
-            return false;
+            return new Response(null, $ex->status, $ex->getMessage());
         }
     }
     
     function handleExit(ExitException $ex)
     {
-        echo $ex->getMessage().PHP_EOL;
+        if ($this->exit) {
+            echo $ex->getMessage().PHP_EOL;
+            exit($ex->status);
+        }
+    }
+}
+
+class Response implements \ArrayAccess, \IteratorAggregate
+{
+    public $status;
+    public $output;
+    public $args;
+    
+    public function __construct($args, $status=0, $output='')
+    {
+        $this->args = $args ?: array();
+        $this->status = $status;
+        $this->output = $output;
+    }
+    
+    public function __get($name)
+    {
+        if ($name == 'success')
+            return $this->status === 0;
+        else
+            throw new \BadMethodCallException("Unknown property $name");
+    }
+    
+    public function offsetExists ($offset)
+    {
+        return isset($this->args[$offset]);
+    }
+
+	public function offsetGet ($offset)
+	{
+	    return $this->args[$offset];
+	}
+
+	public function offsetSet ($offset, $value)
+	{
+	    $this->args[$offset] = $value;
+	}
+
+	public function offsetUnset ($offset)
+	{
+	    unset($this->args[$offset]);
+	}
+	
+    public function getIterator ()
+    {
+        return new \ArrayIterator($this->args);
     }
 }

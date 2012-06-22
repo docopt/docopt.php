@@ -18,7 +18,6 @@ Options:
 
 ";
 
-$arguments = Docopt\docopt($doc, array('version'=>'1.0.0rc2'));
-if ($arguments === false)
-    exit(1);
-var_dump($arguments);
+$result = Docopt\docopt($doc, array('version'=>'1.0.0rc2'));
+foreach ($result as $k=>$v)
+    echo $k.': '.json_encode($v).PHP_EOL;

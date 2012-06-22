@@ -9,12 +9,12 @@ while (!feof(STDIN)) {
 }
 
 ob_start();
-$result = Docopt\docopt($in);
+$result = Docopt\docopt($in, array('exit'=>false));
 $out = ob_end_clean();
 
-if ($result === false)
+if (!$result->success)
     print '"user-error"';
-elseif (empty($result))
+elseif (empty($result->args))
     echo '{}';
 else
-    echo json_encode($result);
+    echo json_encode($result->args);
