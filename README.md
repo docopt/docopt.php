@@ -52,10 +52,9 @@ Options:
 require('path/to/src/docopt.php');
 
 $args = Docopt\docopt($doc, array('version'=>'Naval Fate 2.0'));
-foreach ($args as $k=>$v) {
-    echo $k;
-    var_dump($v);
-}
+foreach ($args as $k=>$v)
+    echo $k.': '.json_encode($v).PHP_EOL;
+
 ```
 
 Beat that! The option parser is generated based on the docstring above that is
@@ -85,10 +84,12 @@ Install using composer:
 
 	php composer.phar install
 
+
 Alternatively, you can just drop `docopt.php` file into your project--it is
 self-contained. [Get source on github](http://github.com/docopt/docopt.php).
 
 `docopt.php` is tested with PHP 5.3
+
 
 API
 ===============================================================================
@@ -173,6 +174,7 @@ array(
 This turns out to be the most straight-forward, unambiguous and readable
 format possible.  You can instantly see that `args['<name>']` is an
 argument, `args['--speed']` is an option, and `args['move']` is a command.
+
 
 Help message format
 ===============================================================================
