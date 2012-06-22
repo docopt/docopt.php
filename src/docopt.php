@@ -27,8 +27,8 @@ function any($iterable)
 
 function ends_with($str, $test)
 {
-	$len = strlen($test);
-	return substr_compare($str, $test, -$len, $len) === 0;
+    $len = strlen($test);
+    return substr_compare($str, $test, -$len, $len) === 0;
 }
 
 /**
@@ -537,9 +537,9 @@ class TokenStream extends \ArrayIterator
     
     function move()
     {
-		$item = $this->current();
-		$this->next();
-		return $item;
+        $item = $this->current();
+        $this->next();
+        return $item;
     }
     
     function raiseException($message)
@@ -590,7 +590,8 @@ function parse_long($tokens, \ArrayIterator $options)
         $tokens->raiseException(sprintf("%s is not a unique prefix: %s?", $raw, implode(", ", $oLongs)));
     }
     
-    $opt = clone $opt[0];
+    $o = $opt[0];
+    $opt = new Option($o->short, $o->long, $o->argcount, $o->value);
     if ($opt->argcount == 1) {
         if ($value === null) {
             if ($tokens->current() == null) {
@@ -635,7 +636,8 @@ function parse_shorts($tokens, \ArrayIterator $options)
             }
         }
         
-        $opt = clone $opt[0];
+        $o = $opt[0];
+        $opt = new Option($o->short, $o->long, $o->argcount, $o->value);
         $raw = substr($raw, 1);
         
         if ($opt->argcount == 0) {
@@ -761,7 +763,6 @@ function parse_atom($tokens, \ArrayIterator $options)
 function parse_args($source, \ArrayIterator $options)
 {
     $tokens = new TokenStream($source, 'ExitException');
-    $options = new \ArrayIterator($options->getArrayCopy());
     $parsed = array();
     
     while ($tokens->current() !== null) {
