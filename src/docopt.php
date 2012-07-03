@@ -814,14 +814,16 @@ function printable_usage($doc)
 function formal_usage($printableUsage)
 {
     $pu = array_slice(preg_split('/\s+/', $printableUsage), 1);
+    
     $ret = array();
     foreach (array_slice($pu, 1) as $s) {
         if ($s == $pu[0])
-            $ret[] = '|';
+            $ret[] = ') | (';
         else
             $ret[] = $s; 
     }
-    return implode(' ', $ret);
+    
+    return '( '.implode(' ', $ret).' )';
 }
 
 function extras($help, $version, $options, $doc)
