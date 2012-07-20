@@ -571,8 +571,14 @@ function parse_long($tokens, \ArrayIterator $options)
     
     $opt = array();
     foreach ($options as $o) {
-        if ($raw && $o->long && strpos($o->long, $raw)===0)
+        if ($raw && $o->long && strpos($o->long, $raw)===0) {
+            // we have exact match, don’t search for more:
+            if ($o->long == $raw) {
+                $opt = array($o);
+                break;
+            }
             $opt[] = $o;
+	    }
     }
     if (!$opt) {
         if ($tokens->error == 'ExitException') {
@@ -584,7 +590,7 @@ function parse_long($tokens, \ArrayIterator $options)
             return array($o);
         }
     }
-    
+
     if (count($opt) > 1) {
         $oLongs = array();
         foreach ($opt as $o) {
