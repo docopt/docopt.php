@@ -7,14 +7,18 @@
 > non-idiomatic to PHP, this has been done to make integrating changes more
 > efficient.
 
-> Though all of the 0.4.0 tests pass, there may still be issues. Please
-> visit the [PHP port's issues page](http://github.com/docopt/docopt.php)
+> As a result, unless a bug is present only in the PHP version, pull requests
+> are unlikely to be accepted unless they are themselves direct transliterations
+> of bugfixes in the Python version.
+
+> Though all of the 0.4.2 tests pass, there may still be issues as this port is
+> relatively new. Please visit the 
+> [PHP port's issues page](http://github.com/docopt/docopt.php)
 > for a list of all current known issues and caveats.
 
 > Furthermore, the PHP API **is a moving target**. Please see
 > [this issue](https://github.com/docopt/docopt.php/issues/1) for an
 > explanation. Use at your own risk.
-
 
 
 
@@ -127,6 +131,9 @@ $doc = "Usage: my_program.php [-hso FILE] [--quiet | --verbose] [INPUT ...]
 ";
 ```
 
+The optional second argument contains an array of additional data to influence
+docopt. The following keys are supported: 
+
 - `argv` is an optional argument vector; by default it is the argument vector
   passed to your program (`array_slice($_SERVER['argv'], 1)`). You can supply 
   it with the list of strings, e.g. `array('--verbose', '-o', 'hai.txt')`.
@@ -178,6 +185,7 @@ argument, `args['--speed']` is an option, and `args['move']` is a command.
 
 Help message format
 ===============================================================================
+
 
 Help message consists of 2 parts:
 
