@@ -386,13 +386,16 @@ class Option extends Pattern
         if (!$collected)
             $collected = array();
         
-        $left2 = array();
+        $left2 = $collected2 = array();
+        
         foreach ($left as $l) {
-             // if this is so greedy, how to handle OneOrMore then?
-             if (!($l instanceof Option && $this->short == $l->short && $this->long == $l->long))
-                 $left2[] = $l;
+            if (!$collected2 && $l instanceof Option && 
+                    $this->short == $l->short && $this->long == $l->long)
+                $collected2[] = $l;
+            else
+                $left2[] = $l;
         }
-        return array($left != $left2, $left2, $collected); 
+        return array($left != $left2, $left2, array_merge($collected, $collected2));
     }
     
     public function name()
@@ -416,12 +419,14 @@ class AnyOptions extends Pattern
         if (!$collected)
             $collected = array();
         
-        $left2 = array();
+        $left2 = $collected2 = array();
         foreach ($left as $l) {
             if (!$l instanceof Option)
                 $left2[] = $l;
+            else
+                $collected2[] = $l;
         }
-        return array($left != $left2, $left2, $collected);
+        return array($left != $left2, $left2, array_merge($collected, $collected2));
     }
 }
 
@@ -763,7 +768,7 @@ function parse_atom($tokens, \ArrayIterator $options)
     }
 }
 
-function parse_args($source, \ArrayIterator $options)
+function parse_argv($source, \ArrayIterator $options)
 {
     $tokens = new TokenStream($source, 'ExitException');
     $parsed = array();
@@ -884,24 +889,20 @@ class Handler
             ExitException::$usage = $usage = printable_usage($doc);
             $potOptions = parse_doc_options($doc);
             $formalUse = formal_usage($usage);
-            $formalPattern = parse_pattern($formalUse, $potOptions);
+            $pattern = parse_pattern($formalUse, $potOptions);
             
-            $argv = parse_args($argv, $potOptions);
+            $argv = parse_argv($argv, $potOptions);
             extras($this->help, $this->version, $argv, $doc);
             
-            list($matched, $left, $arguments) = $formalPattern->fix()->match($argv);
+            list($matched, $left, $collected) = $pattern->fix()->match($argv);
             if ($matched && !$left) {
-                $options = array();
-                foreach ($argv as $o) {
-                    if ($o instanceof Option) $options[] = $o;
-                }
                 $potArguments = array();
-                foreach ($formalPattern->flat() as $a) {
+                foreach ($pattern->flat() as $a) {
                     if ($a instanceof Argument || $a instanceof Command)
                         $potArguments[] = $a;
                 }
                 $return = array();
-                foreach (array_merge($potOptions->getArrayCopy(), $options, $potArguments, $arguments) as $a) {
+                foreach (array_merge($potOptions->getArrayCopy(), $potArguments, $collected) as $a) {
                     $return[$a->name] = $a->value;
                 }
                 return new Response($return);
