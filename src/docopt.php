@@ -365,7 +365,7 @@ class Option extends Pattern
         foreach (preg_split('/\s+/', $options) as $s) {
             if (strpos($s, '--')===0)
                 $long = $s;
-            elseif ($s[0] == '-')
+            elseif ($s && $s[0] == '-')
                 $short = $s;
             else
                 $argcount = 1;
