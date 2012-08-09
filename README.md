@@ -16,11 +16,6 @@
 > [PHP port's issues page](http://github.com/docopt/docopt.php)
 > for a list of all current known issues and caveats.
 
-> Furthermore, the PHP API **is a moving target**. Please see
-> [this issue](https://github.com/docopt/docopt.php/issues/1) for an
-> explanation. Use at your own risk.
-
-
 
 Isn't it awesome how `optparse` and `argparse` generate help messages
 based on your code?!
