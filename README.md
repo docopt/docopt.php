@@ -79,7 +79,7 @@ Installation
 ```javascript
 {
     "require": {
-        "docopt/docopt": "dev-master"
+        "docopt/docopt": "0.4.2"
     }
 }
 ```
