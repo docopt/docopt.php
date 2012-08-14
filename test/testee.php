@@ -10,7 +10,10 @@ while (!feof(STDIN)) {
 
 ob_start();
 $result = Docopt\docopt($in, array('exit'=>false));
-$out = ob_end_clean();
+$out = ob_get_clean();
+
+if (getenv('DOCOPT_DEBUG'))
+    echo $out;
 
 if (!$result->success)
     print '"user-error"';

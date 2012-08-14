@@ -11,11 +11,6 @@
 > are unlikely to be accepted unless they are themselves direct transliterations
 > of bugfixes in the Python version.
 
-> Though all of the 0.4.2 tests pass, there may still be issues as this port is
-> relatively new. Please visit the 
-> [PHP port's issues page](http://github.com/docopt/docopt.php)
-> for a list of all current known issues and caveats.
-
 
 Isn't it awesome how `optparse` and `argparse` generate help messages
 based on your code?!
@@ -74,7 +69,7 @@ Installation
 ```javascript
 {
     "require": {
-        "docopt/docopt": "0.4.2"
+        "docopt/docopt": "0.5.0"
     }
 }
 ```
@@ -275,17 +270,30 @@ Use the following constructs to specify patterns:
   `stdin` is used instead of a file. To support this add "`[-]`" to
   you usage patterns. "`-`" act as a normal command.
 
-If your usage patterns allow to match the same-named argument several times,
-parser will put the matched values into a list, e.g. in case the pattern is
-`my-program.php FILE FILE` then `args['FILE']` will be a list; in case the
-pattern is `my-program.php FILE...` it will also be a list.
+If your pattern allows to match argument-less option (a flag) several times:
+
+    Usage: my_program.py [-v | -vv | -vvv]
+
+then number of occurences of the option will be counted. I.e. `args['-v']`
+will be `2` if program was invoked as `my_program -vv`. Same works for
+commands.
+
+If your usage patterns allows to match same-named option with argument
+or positional argument several times, the matched arguments will be
+collected into a list:
+
+    Usage: my_program.py <file> <file> --path=<path>...
+
+I.e. invoked with `my_program.py file1 file2 --path=./here --path=./there`
+the returned dict will contain `args['<file>'] == ['file1', 'file2']` and
+`args['--path'] == ['./here', './there']`.
 
 
 Option descriptions format
 -------------------------------------------------------------------------------
 
 **Option descriptions** consist of a list of options that you put below your
-ussage patterns.
+usage patterns.
 
 It is necessary to list option descriptions in order to specify:
 

@@ -25,6 +25,57 @@ function any($iterable)
     return false;
 }
 
+/**
+ * The PHP version of this function doesn't work properly if the values aren't scalar.
+ */
+function array_count_values($array)
+{
+    $counts = array();
+    foreach ($array as $v) {
+        if ($v && is_scalar($v))
+            $key = $v;
+        elseif (is_object($v))
+            $key = spl_object_hash($v);
+        else
+            $key = serialize($v);
+        
+        if (!isset($counts[$key]))
+            $counts[$key] = array($v, 1);
+        else
+            $counts[$key][1]++;
+    }
+    return $counts;
+}
+
+/**
+ * The PHP version of this doesn't support array iterators
+ */
+function array_filter($input, $callback, $reKey=false)
+{
+    if ($input instanceof \ArrayIterator)
+        $input = $input->getArrayCopy();
+    
+    $filtered = \array_filter($input, $callback);
+    if ($reKey) $filtered = array_values($filtered);
+    return $filtered;
+}
+
+/**
+ * The PHP version of this doesn't support array iterators
+ */
+function array_merge()
+{
+    $values = func_get_args();
+    $resolved = array();
+    foreach ($values as $v) {
+        if ($v instanceof \ArrayIterator)
+            $resolved[] = $v->getArrayCopy();
+        else
+            $resolved[] = $v;
+    }
+    return call_user_func_array('array_merge', $resolved);
+}
+
 function ends_with($str, $test)
 {
     $len = strlen($test);
@@ -40,6 +91,7 @@ class LanguageError extends \Exception
 
 /**
  * Exit in case user invoked program with incorrect arguments.
+ * DocoptExit equivalent.
  */
 class ExitException extends \RuntimeException
 {
@@ -56,25 +108,6 @@ class ExitException extends \RuntimeException
 
 class Pattern
 {
-    public $children = array();
-    
-    public function __construct($children=null)
-    {
-        if (!$children)
-            $children = array();
-        elseif ($children instanceof Pattern)
-            $children = array($children);
-        
-        if (!is_array($children) && !$children instanceof \Traversable)
-            throw new \InvalidArgumentException("Type was not a traversable: found ".gettype($children).':'.get_class($children));
-        
-        foreach ($children as $c) {
-            if (!$c instanceof Pattern)
-                throw new \InvalidArgumentException("Type was not a pattern: found ".gettype($c).':'.get_class($c));
-            $this->children[] = $c;
-        }
-    }
-
     public function equals($other)
     {
         return $this->repr() == $other->repr();
@@ -83,25 +116,6 @@ class Pattern
     public function hash()
     {
         return crc32($this->repr());
-    }
-    
-    public function __toString()
-    {
-        return serialize($this);
-    }
-    
-    public function flat()
-    {
-        if (!$this->children) {
-            return array($this);
-        }
-        else {
-            $flat = array();
-            foreach ($this->children as $c) {
-                $flat = array_merge($flat, $c->flat());
-            }
-            return $flat;
-        }
     }
     
     public function fix()
@@ -116,7 +130,7 @@ class Pattern
      */
     public function fixIdentities($uniq=null)
     {
-        if (!$this->children)
+        if (!isset($this->children) || !$this->children)
             return $this;
         
         if (!$uniq) {
@@ -124,7 +138,7 @@ class Pattern
         }
         
         foreach ($this->children as $i=>$c) {
-            if (!$c->children) {
+            if (!isset($c->children) || !$c->children) {
                 if (!in_array($c, $uniq)) {
                     // Not sure if this is a true substitute for 'assert c in uniq'
                     throw new \UnexpectedValueException();
@@ -147,23 +161,17 @@ class Pattern
             $either[] = $c->children;
         }
         
-        foreach ($either as $i) {
-            $case = array();
-            foreach ($i as $c) {
-                $num = 0;
-                foreach ($i as $ch) {
-                    if ($ch == $c)
-                        ++$num;
-                    if ($num > 1) {
-                        $case[] = $c;
-                        break;
-                    }
-                }
-            }
+        foreach ($either as $case) {
+            $case = array_map(
+                function($value) { return $value[0]; },
+                array_filter(array_count_values($case), function($value) { return $value[1] > 1; })
+            );
+            
             foreach ($case as $e) {
-                if ($e instanceof Argument) {
+                if ($e instanceof Argument || ($e instanceof Option && $e->argcount))
                     $e->value = array();
-                }
+                if ($e instanceof Command || ($e instanceof Option && $e->argcount == 0))
+                    $e->value = 0;
             }
         }
         
@@ -177,10 +185,6 @@ class Pattern
     {
         // Currently the pattern will not be equivalent, but more "narrow",
         // although good enough to reason about list arguments.
-        if (!$this->children) {
-            return new Either(new Required($this));
-        }
-        
         $ret = array();
         $groups = array(array($this));
         while ($groups) {
@@ -251,9 +255,97 @@ class Pattern
         }
         return new Either($rs);
     }
+    
+    public function name()
+    {}
+
+    public function __get($name)
+    {
+        if ($name == 'name')
+            return $this->name();
+        else
+            throw new \BadMethodCallException("Unknown property $name");
+    }
 }
 
-class Argument extends Pattern
+class ChildPattern extends Pattern
+{
+    public function flat()
+    {
+        return array($this);
+    }
+    
+    public function __toString()
+    {
+        return serialize($this);
+    }
+    
+    public function match($left, $collected=null)
+    {
+        if (!$collected) $collected = array();
+        
+        list ($pos, $match) = $this->singleMatch($left);
+        if (!$match)
+            return array(false, $left, $collected);
+        
+        $left_ = $left;
+        unset($left_[$pos]);
+        $left_ = array_values($left_);
+        
+        $name = $this->name;
+        $sameName = array_filter($collected, function ($a) use ($name) { return $name == $a->name; }, true);
+        
+        if (is_int($this->value) || is_array($this->value) || $this->value instanceof \Traversable) {
+            $increment = is_int($this->value) ? 1 : array($match->value);
+            if (!$sameName) {
+                $match->value = $increment;
+                return array(true, $left_, array_merge($collected, array($match)));
+            }
+            
+            if (is_array($increment) || $increment instanceof \Traversable)
+                $sameName[0]->value = array_merge($sameName[0]->value, $increment);
+            else
+                $sameName[0]->value += $increment;
+            
+            return array(true, $left_, $collected);
+        }
+        
+        return array(true, $left_, array_merge($collected, array($match)));
+    }
+}
+
+class ParentPattern extends Pattern
+{
+    public $children = array();
+    
+    public function __construct($children=null)
+    {
+        if (!$children)
+            $children = array();
+        elseif ($children instanceof Pattern)
+            $children = array($children);
+        
+        foreach ($children as $c) {
+            $this->children[] = $c;
+        }
+    }
+    
+    public function flat()
+    {
+        if (!$this->children) {
+            return array($this);
+        }
+        else {
+            $flat = array();
+            foreach ($this->children as $c) {
+                $flat = array_merge($flat, $c->flat());
+            }
+            return $flat;
+        }
+    }
+}
+
+class Argument extends ChildPattern
 {
     public $name;
     public $value;
@@ -264,45 +356,19 @@ class Argument extends Pattern
         $this->value = $value;
     }
     
-    public function match($left, $collected=null)
+    public function singleMatch($left)
     {
-        if (!$collected) $collected = array();
-        
-        $args = array();
-        foreach ($left as $l) {
-            if ($l instanceof Argument)
-                $args[] = $l;
+        foreach ($left as $n=>$p) {
+            if ($p instanceof Argument) {
+                return array($n, new Argument($this->name, $p->value));
+            }
         }
         
-        if (!$args)
-            return array(false, $left, $collected);
-        
-        $argIdx = array_search($args[0], $left);
-        if ($argIdx !== false) unset($left[$argIdx]);
-        
-        if (!is_array($this->value) && !$this->value instanceof Traversable) {
-            $collected[] = new Argument($this->name, $args[0]->value);
-            return array(true, $left, $collected);
-        }
-        
-        $sameName = array();
-        foreach ($collected as $a) {
-            if ($a instanceof Argument && $a->name == $this->name)
-                $sameName[] = $a;
-        }
-        
-        if ($sameName) {
-            $sameName[0]->value[] = $args[0]->value;
-            return array(true, $left, $collected);
-        }
-        else {
-            $collected[] = new Argument($this->name, array($args[0]->value));
-            return array(true, $left, $collected);
-        }
+        return array(null, null);
     }
 }
 
-class Command extends Pattern
+class Command extends Argument
 {
     public $name;
     public $value;
@@ -313,25 +379,21 @@ class Command extends Pattern
         $this->value = $value;
     }
     
-    public function match($left, $collected=null)
+    function singleMatch($left)
     {
-        if (!$collected) $collected = array();
-        $args = array();
-        foreach ($left as $l) {
-            if ($l instanceof Argument)
-                $args[] = $l;
+        foreach ($left as $n=>$p) {
+            if ($p instanceof Argument) {
+                if ($p->value == $this->name)
+                    return array($n, new Command($this->name, true));
+                else
+                    break;
+            }
         }
-        if (!$args || $args[0]->value != $this->name)
-            return array(false, $left, $collected);
-        
-        unset($left[array_search($args[0], $left)]);
-        
-        $collected[] = new Command($this->name, true);
-        return array(true, $left, $collected);
+        return array(null, null);
     }
 }
 
-class Option extends Pattern
+class Option extends ChildPattern
 {
     public $short;
     public $long;
@@ -381,56 +443,23 @@ class Option extends Pattern
         return new static($short, $long, $argcount, $value);
     }
     
-    public function match($left, $collected=null)
+    public function singleMatch($left)
     {
-        if (!$collected)
-            $collected = array();
-        
-        $left2 = $collected2 = array();
-        
-        foreach ($left as $l) {
-            if (!$collected2 && $l instanceof Option && 
-                    $this->short == $l->short && $this->long == $l->long)
-                $collected2[] = $l;
-            else
-                $left2[] = $l;
+        foreach ($left as $n=>$p) {
+            if ($this->name == $p->name) {
+                return array($n, $p);
+            }
         }
-        return array($left != $left2, $left2, array_merge($collected, $collected2));
+        return array(null, null);
     }
     
     public function name()
     {
         return $this->long ?: $this->short;
     }
-    
-    public function __get($name)
-    {
-        if ($name == 'name')
-            return $this->name();
-        else
-            throw new \BadMethodCallException("Unknown property $name");
-    }
 }
 
-class AnyOptions extends Pattern
-{
-    public function match($left, $collected=null)
-    {
-        if (!$collected)
-            $collected = array();
-        
-        $left2 = $collected2 = array();
-        foreach ($left as $l) {
-            if (!$l instanceof Option)
-                $left2[] = $l;
-            else
-                $collected2[] = $l;
-        }
-        return array($left != $left2, $left2, array_merge($collected, $collected2));
-    }
-}
-
-class Required extends Pattern
+class Required extends ParentPattern
 {
     public function match($left, $collected=null)
     {
@@ -450,7 +479,7 @@ class Required extends Pattern
     }
 }
 
-class Optional extends Pattern
+class Optional extends ParentPattern
 {
     public function match($left, $collected=null)
     {
@@ -465,7 +494,7 @@ class Optional extends Pattern
     }
 }
 
-class OneOrMore extends Pattern
+class OneOrMore extends ParentPattern
 {
     public function match($left, $collected=null)
     {
@@ -498,7 +527,7 @@ class OneOrMore extends Pattern
     }
 }
 
-class Either extends Pattern
+class Either extends ParentPattern
 {
     public function match($left, $collected=null)
     {
@@ -574,11 +603,10 @@ function parse_long($tokens, \ArrayIterator $options)
 
     if (!$value) $value = null;
     
-    $opt = array();
-    foreach ($options as $o) {
-        if ($raw && $o->long && strpos($o->long, $raw)===0)
-            $opt[] = $o;
-    }
+    $opt = array_filter($options, function($o) use ($raw) { return $o->long && $o->long == $raw; }, true);
+    if ('ExitException' == $tokens->error && !$opt)
+        $opt = array_filter($options, function($o) use ($raw) { return $o->long && strpos($o->long, $raw)===0; }, true);
+    
     if (!$opt) {
         if ($tokens->error == 'ExitException') {
             $tokens->raiseException("$raw is not recognised");
@@ -612,7 +640,10 @@ function parse_long($tokens, \ArrayIterator $options)
         $tokens->raiseException("{$opt->name} must not have an argument");
     }
     
-    $opt->value = $value ?: true;
+    if ($tokens->error == 'ExitException')
+        $opt->value = $value ?: true;
+    else
+        $opt->value = $value ? null : false;
     
     return array($opt);
 }
@@ -649,7 +680,7 @@ function parse_shorts($tokens, \ArrayIterator $options)
         $raw = substr($raw, 1);
         
         if ($opt->argcount == 0) {
-            $value = true;
+            $value = 'ExitException' == $tokens->error ? true : false;
         }
         else {
             if ($raw == '') {
@@ -661,7 +692,12 @@ function parse_shorts($tokens, \ArrayIterator $options)
             $value = $raw;
             $raw = '';
         }
-        $opt->value = $value;
+
+        if ('ExitException' == $tokens->error)
+            $opt->value = $value;
+        else
+            $opt->value = $value ? null : false;
+        
         $parsed[] = $opt;
     }
     
@@ -722,7 +758,11 @@ function parse_seq($tokens, \ArrayIterator $options)
             $atom = array(new OneOrMore($atom));
             $tokens->move();
         }
-        $result = array_merge($result, $atom);
+        if ($atom instanceof \ArrayIterator)
+            $atom = $atom->getArrayCopy();
+        if ($atom) {
+            $result = array_merge($result, $atom);
+        }
     }
     return $result;
 }
@@ -735,24 +775,22 @@ function parse_atom($tokens, \ArrayIterator $options)
 {
     $token = $tokens->current();
     $result = array();
-    if ($token == '(') {
+    if ($token == '(' || $token == '[') {
         $tokens->move();
-        $result = array(new Required(parse_expr($tokens, $options)));
-        if ($tokens->move() != ')')
-            $tokens->raiseException("Unmatched '('");
         
-        return $result;
-    }
-    elseif ($token == '[') {
-        $tokens->move();
-        $result = array(new Optional(parse_expr($tokens, $options)));
-        if ($tokens->move() != ']')
-            $tokens->raiseException("Unmatched '['");
-        return $result;
+        static $index;
+        if (!$index) $index = array('('=>array(')', __NAMESPACE__.'\Required'), '['=>array(']', __NAMESPACE__.'\Optional'));
+        list ($matching, $pattern) = $index[$token];
+        
+        $result = new $pattern(parse_expr($tokens, $options));
+        if ($tokens->move() != $matching)
+            $tokens->raiseException("Unmatched '$token'");
+        
+        return array($result);
     }
     elseif ($token == 'options') {
         $tokens->move();
-        return array(new AnyOptions());
+        return $options;
     }
     elseif (strpos($token, '--') === 0 && $token != '--') {
         return parse_long($tokens, $options);
@@ -886,24 +924,21 @@ class Handler
             if (!$argv && isset($_SERVER['argv']))
                 $argv = array_slice($_SERVER['argv'], 1);
             
-            ExitException::$usage = $usage = printable_usage($doc);
-            $potOptions = parse_doc_options($doc);
-            $formalUse = formal_usage($usage);
-            $pattern = parse_pattern($formalUse, $potOptions);
+            ExitException::$usage = printable_usage($doc);
+            $options = parse_doc_options($doc);
+            $formalUse = formal_usage(ExitException::$usage);
+            $pattern = parse_pattern($formalUse, $options);
             
-            $argv = parse_argv($argv, $potOptions);
+            $argv = parse_argv($argv, $options);
             extras($this->help, $this->version, $argv, $doc);
             
             list($matched, $left, $collected) = $pattern->fix()->match($argv);
             if ($matched && !$left) {
-                $potArguments = array();
-                foreach ($pattern->flat() as $a) {
-                    if ($a instanceof Argument || $a instanceof Command)
-                        $potArguments[] = $a;
-                }
                 $return = array();
-                foreach (array_merge($potOptions->getArrayCopy(), $potArguments, $collected) as $a) {
-                    $return[$a->name] = $a->value;
+                foreach (array_merge($pattern->flat(), $options, $collected) as $a) {
+                    $name = $a->name;
+                    if ($name)
+                        $return[$name] = $a->value;
                 }
                 return new Response($return);
             }
@@ -950,21 +985,21 @@ class Response implements \ArrayAccess, \IteratorAggregate
         return isset($this->args[$offset]);
     }
 
-	public function offsetGet ($offset)
-	{
-	    return $this->args[$offset];
-	}
+    public function offsetGet ($offset)
+    {
+        return $this->args[$offset];
+    }
 
-	public function offsetSet ($offset, $value)
-	{
-	    $this->args[$offset] = $value;
-	}
+    public function offsetSet ($offset, $value)
+    {
+        $this->args[$offset] = $value;
+    }
 
-	public function offsetUnset ($offset)
-	{
-	    unset($this->args[$offset]);
-	}
-	
+    public function offsetUnset ($offset)
+    {
+        unset($this->args[$offset]);
+    }
+    
     public function getIterator ()
     {
         return new \ArrayIterator($this->args);
