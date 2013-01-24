@@ -330,7 +330,9 @@ class ChildPattern extends Pattern
 {
     public function flat($types=array())
     {
-        if (!$types || in_array('ChildPattern', $types))
+        $types = is_array($types) ? $types : array($types);
+        
+        if (!$types || in_array(get_class_name($this), $types))
             return array($this);
         else
             return array();
