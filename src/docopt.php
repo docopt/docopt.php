@@ -921,7 +921,7 @@ function parse_argv($tokens, \ArrayIterator $options, $optionsFirst=false)
 
 function parse_defaults($doc)
 {
-    $splitTmp = array_slice(preg_split("@\n *(<\S+?>|-\S+?)@", $doc), 1);
+    $splitTmp = array_slice(preg_split('@\n[ ]*(<\S+?>|-\S+?)@', $doc, null, PREG_SPLIT_DELIM_CAPTURE), 1);
     $split = array();
     for ($cnt = count($splitTmp), $i=0; $i < $cnt; $i+=2) {
         $split[] = $splitTmp[$i] . (isset($splitTmp[$i+1]) ? $splitTmp[$i+1] : '');
@@ -1023,7 +1023,6 @@ class Handler
             $options = parse_defaults($doc);
             $formalUse = formal_usage(ExitException::$usage);
             $pattern = parse_pattern($formalUse, $options);
-
             $argv = parse_argv(new TokenStream($argv, 'ExitException'), $options, $this->optionsFirst);
             foreach ($pattern->flat('AnyOptions') as $ao) {
                 $docOptions = parse_defaults($doc);
