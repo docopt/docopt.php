@@ -1,4 +1,13 @@
 <?php
+/**
+ * Command-line interface parser that will make you smile.
+ *
+ * - http://docopt.org
+ * - Repository and issue-tracker: https://github.com/docopt/docopt.php
+ * - Licensed under terms of MIT license (see LICENSE-MIT)
+ * - Copyright (c) 2013 Vladimir Keleshev, vladimir@keleshev.com
+ *                      Blake Williams, <code@shabbyrobe.org>
+ */
 
 namespace Docopt;
 
@@ -23,6 +32,30 @@ function any($iterable)
             return true;
     }
     return false;
+}
+
+/**
+ * This function returns a list of tuples, where the i-th tuple contains the i-th 
+ * element from each of the argument sequences or iterables. The returned list is 
+ * truncated in length to the length of the shortest argument sequence.
+ */
+function zip()
+{
+    $iterables = func_get_args();
+    if (!$iterables)
+        return array();
+
+    $len = min(array_map(function($v) { return count($v); }, $iterables));
+    $iterCnt = count($iterables);
+
+    $zipped = array();
+    for ($i=0; $i<$len; $i++) {
+        $cur = array();
+        for ($j=0; $j<$iterCnt; $j++)
+            $cur[] = $iterables[$j][$i];
+        $zipped[] = $cur;
+    }
+    return $zipped;
 }
 
 /**
@@ -108,20 +141,20 @@ class ExitException extends \RuntimeException
 
 class Pattern
 {
-    public function equals($other)
+    public function __toString()
     {
-        return $this->repr() == $other->repr();
+        return serialize($this);
     }
-    
+
     public function hash()
     {
-        return crc32($this->repr());
+        return crc32((string)$this);
     }
     
     public function fix()
     {
         $this->fixIdentities();
-        $this->fixListArguments();
+        $this->fixRepeatingArguments();
         return $this;
     }
     
@@ -152,9 +185,9 @@ class Pattern
     }
     
     /**
-     * Find arguments that should accumulate values and fix them.
+     * Fix elements that should accumulate/increment values.
      */
-    public function fixListArguments()
+    public function fixRepeatingArguments()
     {
         $either = array();
         foreach ($this->either()->children as $c) {
@@ -168,8 +201,12 @@ class Pattern
             );
             
             foreach ($case as $e) {
-                if ($e instanceof Argument || ($e instanceof Option && $e->argcount))
-                    $e->value = array();
+                if ($e instanceof Argument || ($e instanceof Option && $e->argcount)) {
+                    if (!$e->value)
+                        $e->value = array();
+                    elseif (!is_array($e->value) && !$e->value instanceof \Traversable)
+                        $e->value = preg_split('/\s+/', $e->value);
+                }
                 if ($e instanceof Command || ($e instanceof Option && $e->argcount == 0))
                     $e->value = 0;
             }
@@ -233,6 +270,17 @@ class Pattern
                 unset($children[array_search($optional, $children)]);
                 $groups[] = array_merge($optional->children, $children);
             }
+            elseif (in_array('AnyOptions', $types)) {
+                $optional = null;
+                foreach ($children as $c) {
+                    if ($c instanceof AnyOptions) {
+                        $optional = $c;
+                        break;
+                    }
+                }
+                unset($children[array_search($optional, $children)]);
+                $groups[] = array_merge($optional->children, $children);
+            }
             elseif (in_array('OneOrMore', $types)) {
                 $oneormore = null;
                 foreach ($children as $c) {
@@ -270,14 +318,12 @@ class Pattern
 
 class ChildPattern extends Pattern
 {
-    public function flat()
+    public function flat($types=array())
     {
-        return array($this);
-    }
-    
-    public function __toString()
-    {
-        return serialize($this);
+        if (!$types || in_array('ChildPattern', $types))
+            return array($this);
+        else
+            return array();
     }
     
     public function match($left, $collected=null)
@@ -296,7 +342,11 @@ class ChildPattern extends Pattern
         $sameName = array_filter($collected, function ($a) use ($name) { return $name == $a->name; }, true);
         
         if (is_int($this->value) || is_array($this->value) || $this->value instanceof \Traversable) {
-            $increment = is_int($this->value) ? 1 : array($match->value);
+            if (is_int($this->value))
+                $increment = 1;
+            else
+                $increment = is_string($match->value) ? array($match->value) : $match->value;
+            
             if (!$sameName) {
                 $match->value = $increment;
                 return array(true, $left_, array_merge($collected, array($match)));
@@ -330,15 +380,20 @@ class ParentPattern extends Pattern
         }
     }
     
-    public function flat()
+    public function flat($types=array())
     {
+        $types = is_array($types) ? $types : array($types);
+
         if (!$this->children) {
             return array($this);
         }
         else {
+            if (in_array('ParentPattern', $types))
+                return array($this);
+
             $flat = array();
             foreach ($this->children as $c) {
-                $flat = array_merge($flat, $c->flat());
+                $flat = array_merge($flat, $c->flat($types));
             }
             return $flat;
         }
@@ -365,6 +420,21 @@ class Argument extends ChildPattern
         }
         
         return array(null, null);
+    }
+
+    public static function parse($source)
+    {
+        $name = null;
+        $value = null;
+
+        if (preg_match_all('@(<\S*?>)@', $source, $matches)) {
+            $name = $matches[0][0];
+        }
+        if (preg_match_all('@\[default: (.*)\]@i', $source, $matches)) {
+            $value = $matches[0][1];
+        }
+
+        return new static($name, $value);
     }
 }
 
@@ -408,8 +478,9 @@ class Option extends ChildPattern
         $this->argcount = $argcount;
         $this->value = $value;
         
+        // Python checks "value is False". maybe we should check "$value === false"
         if (!$value && $argcount)
-            $this->value = null; // apparently a hack
+            $this->value = null;
     }
     
     public static function parse($optionDescription)
@@ -492,6 +563,13 @@ class Optional extends ParentPattern
         
         return array(true, $left, $collected);
     }
+}
+
+/**
+ * Marker/placeholder for [options] shortcut.
+ */
+class AnyOptions extends Optional
+{
 }
 
 class OneOrMore extends ParentPattern
@@ -586,121 +664,121 @@ class TokenStream extends \ArrayIterator
     }
 }
 
+/**
+ * long ::= '--' chars [ ( ' ' | '=' ) chars ] ;
+ */
 function parse_long($tokens, \ArrayIterator $options)
 {
     $token = $tokens->move();
     $exploded = explode('=', $token, 2);
     if (count($exploded) == 2) {
-        $raw = $exploded[0];
+        $long = $exploded[0];
         $eq = '=';
         $value = $exploded[1];
     }
     else {
-        $raw = $token;
+        $long = $token;
         $eq = null;
         $value = null;
     }
 
+    if (strpos($long, '--') !== 0)
+        throw new \UnexpectedValueExeption();
+
     if (!$value) $value = null;
+  
+
+    $similar = array_filter($options, function($o) use ($long) { return $o->long && $o->long == $long; }, true);
+    if ('ExitException' == $tokens->error && !$similar)
+        $similar = array_filter($options, function($o) use ($long) { return $o->long && strpos($o->long, $long)===0; }, true);
     
-    $opt = array_filter($options, function($o) use ($raw) { return $o->long && $o->long == $raw; }, true);
-    if ('ExitException' == $tokens->error && !$opt)
-        $opt = array_filter($options, function($o) use ($raw) { return $o->long && strpos($o->long, $raw)===0; }, true);
-    
-    if (!$opt) {
+    if (count($similar) > 1) {
+        // might be simply specified ambiguously 2+ times?
+        $tokens->raiseException("$long is not a unique prefix: ".implode(', ', array_map(function($o) { return $o->long; }, $similar)));
+    }
+    elseif (count($similar) < 1) {
+        $argcount = $eq == '=' ? 1 : 0;
+        $o = new Option(null, $long, $argcount);
+        $options[] = $o;
         if ($tokens->error == 'ExitException') {
-            $tokens->raiseException("$raw is not recognised");
+            $o = new Option(null, $long, $argcount, $argcount ? $value : true);
+        }
+    }
+    else {
+        $o = new Option($similar[0]->short, $similar[0]->long, $similar[0]->argcount, $similar[0]->value);
+        if ($o->argcount == 0) {
+            if ($value !== null) {
+                $tokens->raiseException("{$o->long} must not have an argument");
+            }
         }
         else {
-            $o = new Option(null, $raw, $eq == '=' ? 1 : 0);
-            $options[] = $o;
-            return array($o);
-        }
-    }
-    
-    if (count($opt) > 1) {
-        $oLongs = array();
-        foreach ($opt as $o) {
-            $oLongs[] = $o->long;
-        }
-        $tokens->raiseException(sprintf("%s is not a unique prefix: %s?", $raw, implode(", ", $oLongs)));
-    }
-    
-    $o = $opt[0];
-    $opt = new Option($o->short, $o->long, $o->argcount, $o->value);
-    if ($opt->argcount == 1) {
-        if ($value === null) {
-            if ($tokens->current() == null) {
-                $tokens->raiseException("{$opt->name} requires argument");
+            if ($value === null) {
+                if ($tokens->current() === null) {
+                    $tokens->raiseException("{$o->long} requires argument");
+                }
+                $value = $tokens->move();
             }
-            $value = $tokens->move();
+        }
+        if ($tokens->error == 'ExitException') {
+            $o->value = $value !== null ? $value : true;
         }
     }
-    elseif ($value !== null) {
-        $tokens->raiseException("{$opt->name} must not have an argument");
-    }
-    
-    if ($tokens->error == 'ExitException')
-        $opt->value = $value ?: true;
-    else
-        $opt->value = $value ? null : false;
-    
-    return array($opt);
+
+    return array($o);
 }
 
+/**
+ * shorts ::= '-' ( chars )* [ [ ' ' ] chars ] ;
+ */
 function parse_shorts($tokens, \ArrayIterator $options)
 {
-    $raw = substr($tokens->move(), 1);
+    $token = $tokens->move();
+
+    if (strpos($token, '-') !== 0 || strpos($token, '--') === 0)
+        throw new \UnexpectedValueExeption();
+
+    $left = ltrim($token, '-');
     $parsed = array();
-    while ($raw != '') {
-        $opt = array();
+    while ($left != '') {
+        $short = '-'.$left[0];
+        $left = substr($left, 1);
+        $similar = array();
         foreach ($options as $o) {
-            if ($o->short && strpos(ltrim($o->short, '-'), $raw[0])===0)
-                $opt[] = $o;
-        }
-        $optc = count($opt);
-        if ($optc > 1) {
-            $tokens->raiseException(sprintf('-%s is specified ambiguously %d times', $raw[0], $optc));
-        }
-        elseif ($optc < 1) {
-            if ($tokens->error == 'ExitException') {
-                $tokens->raiseException("-{$raw[0]} is not recognised");
-            }
-            else {
-                $o = new Option('-'.$raw[0], null);
-                $options[] = $o;
-                $parsed[] = $o;
-                $raw = substr($raw, 1);
-                continue;
-            }
-        }
-        
-        $o = $opt[0];
-        $opt = new Option($o->short, $o->long, $o->argcount, $o->value);
-        $raw = substr($raw, 1);
-        
-        if ($opt->argcount == 0) {
-            $value = 'ExitException' == $tokens->error ? true : false;
-        }
-        else {
-            if ($raw == '') {
-                if ($tokens->current() == null) {
-                    $tokens->raiseException("-{$opt->short[0]} requires argument");
-                }
-                $raw = $tokens->move();
-            }
-            $value = $raw;
-            $raw = '';
+            if ($o->short == $short)
+                $similar[] = $o;
         }
 
-        if ('ExitException' == $tokens->error)
-            $opt->value = $value;
-        else
-            $opt->value = $value ? null : false;
-        
-        $parsed[] = $opt;
+        $similarCnt = count($similar);
+        if ($similarCnt > 1) {
+            $tokens->raiseException("$short is specified ambiguously $similarCnt times");
+        }
+        elseif ($similarCnt < 1) {
+            $o = new Option($short, null, 0);
+            $options[] = $o;
+            if ($tokens->error == 'ExitException')
+                $o = new Option($short, null, 0, true);
+        }
+        else {
+            $o = new Option($short, $similar[0]->long, $similar[0]->argcount, $similar[0]->value);
+            $value = null;
+            if ($o->argcount != 0) {
+                if ($left == '') {
+                    if ($tokens->current() === null)
+                        $tokens->raiseException("$short requires argument");
+                    $value = $tokens->move();
+                }
+                else {
+                    $value = $left;
+                    $left = '';
+                }
+            }
+            if ($tokens->error == 'ExitException') {
+                $o->value = $value !== null ? $value : true;
+            }
+        }
+        $parsed[] = $o;
     }
-    
+
     return $parsed;
 }
 
@@ -790,7 +868,7 @@ function parse_atom($tokens, \ArrayIterator $options)
     }
     elseif ($token == 'options') {
         $tokens->move();
-        return $options;
+        return array(new AnyOptions);
     }
     elseif (strpos($token, '--') === 0 && $token != '--') {
         return parse_long($tokens, $options);
@@ -806,9 +884,16 @@ function parse_atom($tokens, \ArrayIterator $options)
     }
 }
 
-function parse_argv($source, \ArrayIterator $options)
+/**
+ * Parse command-line argument vector.
+ * 
+ * If options_first:
+ *     argv ::= [ long | shorts ]* [ argument ]* [ '--' [ argument ]* ] ;
+ * else:
+ *     argv ::= [ long | shorts | argument ]* [ '--' [ argument ]* ] ;
+ */
+function parse_argv($tokens, \ArrayIterator $options, $optionsFirst=false)
 {
-    $tokens = new TokenStream($source, 'ExitException');
     $parsed = array();
     
     while ($tokens->current() !== null) {
@@ -824,6 +909,9 @@ function parse_argv($source, \ArrayIterator $options)
         elseif (strpos($tokens->current(), '-')===0 && $tokens->current() != '-') {
             $parsed = array_merge($parsed, parse_shorts($tokens, $options));
         }
+        elseif ($optionsFirst) {
+            return array_merge($parsed, array_map(function($v) { return new Argument(null, $v); }, $tokens));
+        }
         else {
             $parsed[] = new Argument(null, $tokens->move());
         }
@@ -831,13 +919,19 @@ function parse_argv($source, \ArrayIterator $options)
     return $parsed;
 }
 
-function parse_doc_options($doc)
+function parse_defaults($doc)
 {
-    $items = new \ArrayIterator();
-    foreach (array_slice(preg_split('@^ *-|\n *-@', $doc), 1) as $s) {
-        $items[] = Option::parse('-'.$s);
+    $splitTmp = array_slice(preg_split("@\n *(<\S+?>|-\S+?)@", $doc), 1);
+    $split = array();
+    for ($cnt = count($splitTmp), $i=0; $i < $cnt; $i+=2) {
+        $split[] = $splitTmp[$i] . (isset($splitTmp[$i+1]) ? $splitTmp[$i+1] : '');
     }
-    return $items; 
+    $options = new \ArrayIterator();
+    foreach ($split as $s) {
+        if (strpos($s, '-') === 0)
+            $options[] = Option::parse($s);
+    }
+    return $options;
 }
 
 function printable_usage($doc)
@@ -910,6 +1004,7 @@ class Handler
 {
     public $exit = true;
     public $help = true;
+    public $optionsFirst = false;
     public $version;
     
     public function __construct($options=array())
@@ -925,17 +1020,22 @@ class Handler
                 $argv = array_slice($_SERVER['argv'], 1);
             
             ExitException::$usage = printable_usage($doc);
-            $options = parse_doc_options($doc);
+            $options = parse_defaults($doc);
             $formalUse = formal_usage(ExitException::$usage);
             $pattern = parse_pattern($formalUse, $options);
-            
-            $argv = parse_argv($argv, $options);
+
+            $argv = parse_argv(new TokenStream($argv, 'ExitException'), $options, $this->optionsFirst);
+            foreach ($pattern->flat('AnyOptions') as $ao) {
+                $docOptions = parse_defaults($doc);
+                $ao->children = array_diff((array)$docOptions, $pattern->flat('Option'));
+            }
+
             extras($this->help, $this->version, $argv, $doc);
             
             list($matched, $left, $collected) = $pattern->fix()->match($argv);
             if ($matched && !$left) {
                 $return = array();
-                foreach (array_merge($pattern->flat(), $options, $collected) as $a) {
+                foreach (array_merge($pattern->flat(), $collected) as $a) {
                     $name = $a->name;
                     if ($name)
                         $return[$name] = $a->value;
