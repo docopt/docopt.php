@@ -35,30 +35,6 @@ function any($iterable)
 }
 
 /**
- * This function returns a list of tuples, where the i-th tuple contains the i-th 
- * element from each of the argument sequences or iterables. The returned list is 
- * truncated in length to the length of the shortest argument sequence.
- */
-function zip()
-{
-    $iterables = func_get_args();
-    if (!$iterables)
-        return array();
-
-    $len = min(array_map(function($v) { return count($v); }, $iterables));
-    $iterCnt = count($iterables);
-
-    $zipped = array();
-    for ($i=0; $i<$len; $i++) {
-        $cur = array();
-        for ($j=0; $j<$iterCnt; $j++)
-            $cur[] = $iterables[$j][$i];
-        $zipped[] = $cur;
-    }
-    return $zipped;
-}
-
-/**
  * The PHP version of this function doesn't work properly if the values aren't scalar.
  */
 function array_count_values($array)
@@ -115,6 +91,40 @@ function ends_with($str, $test)
     return substr_compare($str, $test, -$len, $len) === 0;
 }
 
+function get_class_name($obj)
+{
+    $cls = get_class($obj);
+    return substr($cls, strpos($cls, '\\')+1);
+}
+
+function dump($val)
+{
+    if (is_array($val) || $val instanceof \Traversable) {
+        echo '[';
+        $cur = array();
+        foreach ($val as $i)
+            $cur[] = $i->dump();
+        echo implode(', ', $cur);
+        echo ']';
+    }
+    else
+        echo $val->dump();
+}
+
+function dump_scalar($scalar)
+{
+    if ($scalar === null)
+        return 'None';
+    elseif ($scalar === false)
+        return 'False';
+    elseif ($scalar === true)
+        return 'True';
+    elseif (is_int($scalar) || is_float($scalar))
+        return $scalar;
+    else
+        return "'$scalar'";
+}
+
 /**
  * Error in construction of usage-message by developer
  */
@@ -165,13 +175,13 @@ class Pattern
     {
         if (!isset($this->children) || !$this->children)
             return $this;
-        
+
         if (!$uniq) {
             $uniq = array_unique($this->flat());
         }
-        
+
         foreach ($this->children as $i=>$c) {
-            if (!isset($c->children) || !$c->children) {
+            if (!$c instanceof ParentPattern) {
                 if (!in_array($c, $uniq)) {
                     // Not sure if this is a true substitute for 'assert c in uniq'
                     throw new \UnexpectedValueException();
@@ -383,20 +393,25 @@ class ParentPattern extends Pattern
     public function flat($types=array())
     {
         $types = is_array($types) ? $types : array($types);
-
-        if (!$this->children) {
+        if (in_array(get_class_name($this), $types))
             return array($this);
-        }
-        else {
-            if (in_array('ParentPattern', $types))
-                return array($this);
 
-            $flat = array();
-            foreach ($this->children as $c) {
-                $flat = array_merge($flat, $c->flat($types));
-            }
-            return $flat;
+        $flat = array();
+        foreach ($this->children as $c) {
+            $flat = array_merge($flat, $c->flat($types));
         }
+        return $flat;
+    }
+
+    public function dump()
+    {
+        $out = get_class_name($this).'(';
+        $cd = array();
+        foreach ($this->children as $c) {
+            $cd[] = $c->dump();
+        }
+        $out .= implode(', ', $cd).')';
+        return $out;
     }
 }
 
@@ -435,6 +450,11 @@ class Argument extends ChildPattern
         }
 
         return new static($name, $value);
+    }
+
+    public function dump()
+    {
+        return "Argument('".dump_scalar($this->name)."', ".dump_scalar($this->value)."')";
     }
 }
 
@@ -510,7 +530,7 @@ class Option extends ChildPattern
                 $value = $match[1];
             }
         }
-        
+
         return new static($short, $long, $argcount, $value);
     }
     
@@ -527,6 +547,11 @@ class Option extends ChildPattern
     public function name()
     {
         return $this->long ?: $this->short;
+    }
+
+    public function dump()
+    {
+        return "Option('{$this->short}', ".dump_scalar($this->long).", ".dump_scalar($this->argcount).", ".dump_scalar($this->value).")";
     }
 }
 
@@ -1021,6 +1046,7 @@ class Handler
             
             ExitException::$usage = printable_usage($doc);
             $options = parse_defaults($doc);
+
             $formalUse = formal_usage(ExitException::$usage);
             $pattern = parse_pattern($formalUse, $options);
             $argv = parse_argv(new TokenStream($argv, 'ExitException'), $options, $this->optionsFirst);
@@ -1030,7 +1056,7 @@ class Handler
             }
 
             extras($this->help, $this->version, $argv, $doc);
-            
+
             list($matched, $left, $collected) = $pattern->fix()->match($argv);
             if ($matched && !$left) {
                 $return = array();
@@ -1079,22 +1105,22 @@ class Response implements \ArrayAccess, \IteratorAggregate
             throw new \BadMethodCallException("Unknown property $name");
     }
     
-    public function offsetExists ($offset)
+    public function offsetExists($offset)
     {
         return isset($this->args[$offset]);
     }
 
-    public function offsetGet ($offset)
+    public function offsetGet($offset)
     {
         return $this->args[$offset];
     }
 
-    public function offsetSet ($offset, $value)
+    public function offsetSet($offset, $value)
     {
         $this->args[$offset] = $value;
     }
 
-    public function offsetUnset ($offset)
+    public function offsetUnset($offset)
     {
         unset($this->args[$offset]);
     }
