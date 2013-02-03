@@ -671,7 +671,7 @@ class TokenStream extends \ArrayIterator
     {
         if (!is_array($source))
             $source = preg_split('/\s+/', trim($source));
-        
+               
         parent::__construct($source);
                 
         $this->error = $error; 
@@ -1020,6 +1020,11 @@ function docopt($doc, $params=array())
         $argv = $params['argv'];
         unset($params['argv']);
     }
+    elseif (is_string($params)) {
+        $argv = $params;
+        $params = array();
+    }
+    
     $h = new Handler($params);
     return $h->handle($doc, $argv);
 }

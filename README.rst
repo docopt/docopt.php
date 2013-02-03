@@ -14,6 +14,12 @@ of bugfixes in the Python version.
 
 Video introduction to **docopt**: `PyCon UK 2012: Create *beautiful*
 command-line interfaces with Python <http://youtu.be/pXhcPJK5cMc>`_
+    
+    New in version 0.6.1:
+
+    - Fix issue `#85 <https://github.com/docopt/docopt/issues/85>`_
+      which caused improper handling of ``[options]`` shortcut
+      if it was present several times.
 
     New in version 0.6.0:
 
@@ -30,9 +36,9 @@ command-line interfaces with Python <http://youtu.be/pXhcPJK5cMc>`_
     Breaking changes:
 
     - Meaning of ``[options]`` shortcut slightly changed. Previously
-      it ment *"any known option"*. Now it means *"any option not in
+      it meant *"any known option"*. Now it means *"any option not in
       usage-pattern"*.  This avoids the situation when an option is
-      allowed to be repeated unintentionaly.
+      allowed to be repeated unintentionally.
 
     - ``argv`` is ``None`` by default, not ``sys.argv[1:]``.
       This allows ``docopt`` to always use the *latest* ``sys.argv``,
@@ -97,7 +103,7 @@ Create a ``composer.json`` file for your project
 
     {
         "require": {
-            "docopt/docopt": "0.5.0"
+            "docopt/docopt": ">=0.6.1"
         }
     }
 
@@ -276,7 +282,7 @@ Use the following constructs to specify patterns:
   --path=<path> <file>...`` is the same as ``my_program.php
   (--path=<path> <file>...)``.  (Note, "required options" might be not
   a good idea for your users).
-- **|** (pipe) **mutualy exclusive** elements. Group them using **(
+- **|** (pipe) **mutually exclusive** elements. Group them using **(
   )** if one of the mutually exclusive elements is required:
   ``my_program.php (--clockwise | --counter-clockwise) TIME``. Group
   them using **[ ]** if none of the mutually-exclusive elements are
@@ -303,7 +309,7 @@ times::
 
     Usage: my_program.php [-v | -vv | -vvv]
 
-then number of occurences of the option will be counted. I.e.
+then number of occurrences of the option will be counted. I.e.
 ``args['-v']`` will be ``2`` if program was invoked as ``my_program
 -vv``. Same works for commands.
 
@@ -348,7 +354,7 @@ The rules are as follows:
   to stick to a single style.::
 
     -o FILE --output=FILE       # without comma, with "=" sign
-    -i <file>, --input <file>   # with comma, wihtout "=" sing
+    -i <file>, --input <file>   # with comma, wihtout "=" sign
 
 - Use two spaces to separate options with their informal description::
 
@@ -367,7 +373,7 @@ The rules are as follows:
     --directory=DIR  Some directory [default: ./]
 
 - If the option is not repeatable, the value inside ``[default: ...]``
-  will be interpeted as string.  If it *is* repeatable, it will be
+  will be interpreted as string.  If it *is* repeatable, it will be
   splited into a list on whitespace::
 
     Usage: my_program.php [--repeatable=<arg> --repeatable=<arg>]
@@ -395,7 +401,7 @@ Subparsers, multi-level help and *huge* applications (like git)
 ----------------------------------------------------------------------
 
 If you want to split your usage-pattern into several, implement
-multi-level help (whith separate help-screen for each subcommand),
+multi-level help (with separate help-screen for each subcommand),
 want to interface with existing scripts that don't use **docopt**, or
 you're building the next "git", you will need the new ``options_first``
 parameter (described in API section above). To get you started quickly
