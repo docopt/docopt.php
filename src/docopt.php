@@ -671,7 +671,7 @@ class TokenStream extends \ArrayIterator
     {
         if (!is_array($source))
             $source = preg_split('/\s+/', trim($source));
-               
+
         parent::__construct($source);
                 
         $this->error = $error; 
