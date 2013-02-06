@@ -14,7 +14,7 @@ namespace Docopt;
 /**
  * Return true if all cased characters in the string are uppercase and there is 
  * at least one cased character, false otherwise.
- * Python method with no known equivalent in PHP.
+ * Python method with no knowrn equivalent in PHP.
  */
 function is_upper($string)
 {
@@ -385,7 +385,7 @@ class ParentPattern extends Pattern
         if (!$children)
             $children = array();
         elseif ($children instanceof Pattern)
-            $children = array($children);
+            $children = func_get_args();
         
         foreach ($children as $c) {
             $this->children[] = $c;
@@ -638,7 +638,7 @@ class Either extends ParentPattern
     {
         if (!$collected)
             $collected = array();
-        
+
         $outcomes = array();
         foreach ($this->children as $p) {
             list ($matched, $dump1, $dump2) = $outcome = $p->match($left, $collected);
@@ -713,12 +713,11 @@ function parse_long($tokens, \ArrayIterator $options)
         throw new \UnexpectedValueExeption();
 
     if (!$value) $value = null;
-  
 
     $similar = array_filter($options, function($o) use ($long) { return $o->long && $o->long == $long; }, true);
     if ('ExitException' == $tokens->error && !$similar)
         $similar = array_filter($options, function($o) use ($long) { return $o->long && strpos($o->long, $long)===0; }, true);
-    
+
     if (count($similar) > 1) {
         // might be simply specified ambiguously 2+ times?
         $tokens->raiseException("$long is not a unique prefix: ".implode(', ', array_map(function($o) { return $o->long; }, $similar)));
@@ -750,7 +749,6 @@ function parse_long($tokens, \ArrayIterator $options)
             $o->value = $value !== null ? $value : true;
         }
     }
-
     return array($o);
 }
 
@@ -1048,7 +1046,7 @@ class Handler
     function handle($doc, $argv=null)
     {
         try {
-            if (!$argv && isset($_SERVER['argv']))
+            if ($argv === null && isset($_SERVER['argv']))
                 $argv = array_slice($_SERVER['argv'], 1);
             
             ExitException::$usage = printable_usage($doc);
