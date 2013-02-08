@@ -935,7 +935,7 @@ function parse_argv($tokens, \ArrayIterator $options, $optionsFirst=false)
             $parsed = array_merge($parsed, parse_shorts($tokens, $options));
         }
         elseif ($optionsFirst) {
-            return array_merge($parsed, array_map(function($v) { return new Argument(null, $v); }, $tokens));
+            return array_merge($parsed, array_map(function($v) { return new Argument(null, $v); }, iterator_to_array($tokens)));
         }
         else {
             $parsed[] = new Argument(null, $tokens->move());

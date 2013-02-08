@@ -761,9 +761,6 @@ class DocoptTest extends \PHPUnit_Framework_TestCase
     #                                      new Option('-o', null, 1),
     #                                      new Option(null, '--verbose')]
 
-    /**
-     * @group faulty
-     */
     public function testOptionsFirst()
     {
         $this->assertEquals($this->docopt('usage: prog [--opt] [<args>...]',
