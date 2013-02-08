@@ -17,7 +17,7 @@ class DocoptTest extends \PHPUnit_Framework_TestCase
     /**
      * The arguments from the docopt test file are the other way around.
      */
-    public static function assertEquals()
+    public static function assertEquals($expected, $actual, $message = '', $delta = 0, $maxDepth = 10, $canonicalize = false, $ignoreCase = false)
     {
         $args = func_get_args();
         list($args[1], $args[0]) = array($args[0], $args[1]);
@@ -497,10 +497,10 @@ class DocoptTest extends \PHPUnit_Framework_TestCase
 
     function testLongOptionsErrorHandling()
     {
-        #    with raises(DocoptLanguageError):
-        #        docopt('Usage: prog --non-existent', '--non-existent')
-        #    with raises(DocoptLanguageError):
-        #        docopt('Usage: prog --non-existent')
+        #    $this->setExpectedException('Docopt\LanguageError');
+        #        $this->docopt('Usage: prog --non-existent', '--non-existent')
+        #    $this->setExpectedException('Docopt\LanguageError');
+        #        $this->docopt('Usage: prog --non-existent')
         $result = $this->docopt('Usage: prog', '--non-existent');
         $this->assertFalse($result->success);
 
@@ -532,7 +532,252 @@ class DocoptTest extends \PHPUnit_Framework_TestCase
         $result = $this->docopt("Usage: prog --long\n\n--long", '--long=ARG');
         $this->assertFalse($result->success);
     }
+    
+    
+    function testShortOptionsErrorHandlingPart1()
+    {
+        $this->setExpectedException('Docopt\LanguageError');
+        $this->docopt("Usage: prog -x\n\n-x  this\n-x  that");
+    }
+    
+    
+    function testShortOptionsErrorHandlingPart2()
+    {
+        $result = $this->docopt('Usage: prog', '-x');
+        $this->assertFalse($result->success);
+    }
+    
+    function testShortOptionsErrorHandlingPart3()
+    {
+        $this->setExpectedException('Docopt\LanguageError');
+        $this->docopt("Usage: prog -o\n\n-o ARG");
+    }
+    
+    function testShortOptionsErrorHandlingPart4()
+    {
+        $result = $this->docopt("Usage: prog -o ARG\n\n-o ARG", '-o');
+        $this->assertFalse($result->success);
+    }
+    
+    function testMatchingParenPart1()
+    {
+        $this->setExpectedException('Docopt\LanguageError');
+        $this->docopt('Usage: prog [a [b]');
+    }
+    
+    /**
+     * @group faulty
+     */
+    function testMatchingParenPart2()
+    {
+        $this->setExpectedException('Docopt\LanguageError');
+        $this->docopt('Usage: prog [a [b] ] c )');
+    }
 
+    function testAllowDoubleDash()
+    {
+        $this->assertEquals($this->docopt("usage: prog [-o] [--] <arg>\n\n-o",
+                      '-- -o')->args, array('-o'=> false, '<arg>'=>'-o', '--'=>true)
+        );
+        $this->assertEquals($this->docopt("usage: prog [-o] [--] <arg>\n\n-o",
+                      '-o 1')->args, array('-o'=>true, '<arg>'=>'1', '--'=>false)
+        );
+        $result = $this->docopt("usage: prog [-o] <arg>\n\n-o", '-- -o');
+        $this->assertFalse($result->success);
+    }
+    
+    function testDocopt()
+    {
+        $doc = "Usage: prog [-v] A
+
+        -v  Be verbose.";
+        
+        $this->assertEquals($this->docopt($doc, 'arg')->args, array('-v'=>false, 'A'=>'arg'));
+        $this->assertEquals($this->docopt($doc, '-v arg')->args, array('-v'=>true, 'A'=>'arg'));
+
+        $doc = "Usage: prog [-vqr] [FILE]
+                  prog INPUT OUTPUT
+                  prog --help
+
+        Options:
+          -v  print status messages
+          -q  report only file names
+          -r  show all occurrences of the same error
+          --help
+
+        ";
+        $a = $this->docopt($doc, '-v file.py');
+        $this->assertEquals($a->args, array('-v'=>true, '-q'=>false, '-r'=>false, '--help'=>false,
+                     'FILE'=>'file.py', 'INPUT'=>null, 'OUTPUT'=>null));
+
+        $a = $this->docopt($doc, '-v');
+        $this->assertEquals($a->args, array('-v'=>true, '-q'=>false, '-r'=>false, '--help'=>false,
+                     'FILE'=>null, 'INPUT'=>null, 'OUTPUT'=>null));
+
+        $result = $this->docopt($doc, '-v input.py output.py');
+        $this->assertFalse($result->success);
+
+        $result = $this->docopt($doc, '--fake');
+        $this->assertFalse($result->success);
+
+        $result = $this->docopt($doc, '--hel');
+        $this->assertTrue($result['--help']);
+    }
+
+    function testLanguageErrors()
+    {
+        $this->setExpectedException('Docopt\LanguageError');
+        $this->docopt('no usage with colon here');
+    }
+    
+    function testLanguageErrorsPart2()
+    {
+        $this->setExpectedException('Docopt\LanguageError');
+        $this->docopt("usage: here \n\n and again usage: here");
+    }
+
+    function testIssue40()
+    {
+        $result = $this->docopt('usage: prog --help-commands | --help', '--help');
+        $this->assertTrue($result['--help']);
+        
+        $this->assertEquals($this->docopt('usage: prog --aabb | --aa', '--aa')->args, array('--aabb'=>false,
+                                                               '--aa'=>true));
+    }
+
+    /**
+     * @group faulty
+     */
+    function testCountMultipleFlags()
+    {
+        $this->assertEquals($this->docopt('usage: prog [-v]', '-v')->args, array('-v'=>true));
+        $this->assertEquals($this->docopt('usage: prog [-vv]', '')->args, array('-v'=>0));
+        $this->assertEquals($this->docopt('usage: prog [-vv]', '-v')->args, array('-v'=>1));
+        $this->assertEquals($this->docopt('usage: prog [-vv]', '-vv')->args, array('-v'=>2));
+        
+        $result = $this->$this->docopt('usage: prog [-vv]', '-vvv');
+        $this->assertFalse($result->success);
+        
+        $this->assertEquals($this->docopt('usage: prog [-v | -vv | -vvv]', '-vvv')->args, array('-v'=>3));
+        $this->assertEquals($this->docopt('usage: prog -v...', '-vvvvvv')->args, array('-v'=>6));
+        $this->assertEquals($this->docopt('usage: prog [--ver --ver]', '--ver --ver')->args, array('--ver'=>2));
+    }
+    
+    /**
+     * @group faulty
+     */
+    function testCountMultipleCommands()
+    {
+        $this->assertEquals($this->docopt('usage: prog [go]', 'go')->args, array('go'=>true));
+        $this->assertEquals($this->docopt('usage: prog [go go]', '')->args, array('go'=>0));
+        $this->assertEquals($this->docopt('usage: prog [go go]', 'go')->args, array('go'=>1));
+        $this->assertEquals($this->docopt('usage: prog [go go]', 'go go')->args, array('go'=>2));
+        
+        $result = $this->$this->docopt('usage: prog [go go]', 'go go go');
+        $this->assertFalse($result->success);
+        
+        $this->assertEquals($this->docopt('usage: prog go...', 'go go go go go')->args, array('go'=>5));
+    }
+
+
+    function testAnyOptionsParameter()
+    {
+        $result = $this->docopt('usage: prog [options]', '-foo --bar --spam=eggs');
+        $this->assertFalse($result->success);
+        
+    #    $this->assertEquals($this->docopt('usage: prog [options]', '-foo --bar --spam=eggs',
+    #                  any_options=true), array('-f'=>true, '-o'=>2,
+    #                                         '--bar'=>true, '--spam'=>'eggs'}
+        $result = $this->docopt('usage: prog [options]', '--foo --bar --bar');
+        $this->assertFalse($result->success);
+        
+    #    $this->assertEquals($this->docopt('usage: prog [options]', '--foo --bar --bar',
+    #                  any_options=true), array('--foo'=>true, '--bar'=>2}
+        $result = $this->docopt('usage: prog [options]', '--bar --bar --bar -ffff');
+        $this->assertFalse($result->success);
+        
+    #    $this->assertEquals($this->docopt('usage: prog [options]', '--bar --bar --bar -ffff',
+    #                  any_options=true), array('--bar'=>3, '-f'=>4}
+        $result = $this->docopt('usage: prog [options]', '--long=arg --long=another');
+        $this->assertFalse($result->success);
+        
+    #    $this->assertEquals($this->docopt('usage: prog [options]', '--long=arg --long=another',
+    #                  any_options=true), array('--long'=>['arg', 'another']}
+    }
+
+
+    #def test_options_shortcut_multiple_commands():
+    #    # any_options is disabled
+    #    $this->assertEquals($this->docopt('usage: prog c1 [options] prog c2 [options]',
+    #        'c2 -o', any_options=true), array('-o'=>true, 'c1'=>false, 'c2'=>true}
+    #    $this->assertEquals($this->docopt('usage: prog c1 [options] prog c2 [options]',
+    #        'c1 -o', any_options=true), array('-o'=>true, 'c1'=>true, 'c2'=>false}
+
+
+    public function testOptionsShortcutDoesNotAddOptionsToPatternSecondTime()
+    {
+        $this->assertEquals($this->docopt("usage: prog [options] [-a]\n\n-a -b", '-a')->args,
+                array('-a'=>true, '-b'=>false));
+        
+        $result = $this->docopt("usage: prog [options] [-a]\n\n-a -b", '-aa');
+        $this->assertFalse($result->success);
+    }
+
+    /**
+     * @group faulty
+     */
+    function testDefaultValueForPositionalArguments()
+    {
+        # disabled right now
+        $this->assertEquals($this->docopt("usage: prog [<p>]\n\n<p>  [default: x]", '')->args,
+                array('<p>'=>null));
+        #       {'<p>'=>'x'}
+        $this->assertEquals($this->docopt("usage: prog [<p>]...\n\n<p>  [default: x y]", '')->args,
+                array('<p>'=>[]));
+        #       {'<p>'=>['x', 'y']}
+        $this->assertEquals($this->docopt("usage: prog [<p>]...\n\n<p>  [default: x y]", 'this')->args,
+                array('<p>'=>['this']));
+        #       {'<p>'=>['this']}
+    }
+    
+    #def test_parse_defaults():
+    #    $this->assertEquals(parse_defaults("""usage: prog
+    #
+    #                          -o, --option <o>
+    #                          --another <a>  description
+    #                                         [default: x]
+    #                          <a>
+    #                          <another>  description [default: y]"""),
+    #           ([new Option('-o', '--option', 1, null),
+    #             new Option(null, '--another', 1, 'x')],
+    #            [new Argument('<a>', null),
+    #             new Argument('<another>', 'y')])
+    #
+    #    doc = '''
+    #    -h, --help  Print help message.
+    #    -o FILE     Output file.
+    #    --verbose   Verbose mode.'''
+    #    $this->assertEquals(parse_defaults(doc)[0], [new Option('-h', '--help'),
+    #                                      new Option('-o', null, 1),
+    #                                      new Option(null, '--verbose')]
+
+    /**
+     * @group faulty
+     */
+    public function testOptionsFirst()
+    {
+        $this->assertEquals($this->docopt('usage: prog [--opt] [<args>...]',
+                      '--opt this that')->args, array('--opt'=>true,
+                                             '<args>'=>['this', 'that']));
+        $this->assertEquals($this->docopt('usage: prog [--opt] [<args>...]',
+                      'this that --opt')->args, array('--opt'=>true,
+                                             '<args>'=>['this', 'that']));
+        $this->assertEquals($this->docopt('usage: prog [--opt] [<args>...]',
+                      'this that --opt',
+                      array('optionsFirst'=>true))->args, array('--opt'=>false,
+                                              '<args>'=>array('this', 'that', '--opt')));
+    }
+    
     public function testIssue68OptionsShortcutDoesNotIncludeOptionsInUsagePattern()
     {
         $args = $this->docopt("usage: prog [-ab] [options]\n\n-x\n-y", '-ax');
@@ -554,225 +799,10 @@ class DocoptTest extends \PHPUnit_Framework_TestCase
         );
     }
 
-    private function docopt($usage, $args='')
+    private function docopt($usage, $args='', $extra=array())
     {
-        $handler = new \Docopt\Handler(array('exit'=>false, 'help'=>false));
+        $extra = array_merge(array('exit'=>false, 'help'=>false), $extra);
+        $handler = new \Docopt\Handler($extra);
         return call_user_func(array($handler, 'handle'), $usage, $args);
     }
 }
-
-/*
-
-    def test_short_options_error_handling():
-        with raises(DocoptLanguageError):
-            docopt("Usage: prog -x\n\n-x  this\n-x  that")
-
-    #    with raises(DocoptLanguageError):
-    #        docopt('Usage: prog -x')
-        with raises(DocoptExit):
-            docopt('Usage: prog', '-x')
-
-        with raises(DocoptLanguageError):
-            docopt("Usage: prog -o\n\n-o ARG")
-        with raises(DocoptExit):
-            docopt("Usage: prog -o ARG\n\n-o ARG", '-o')
-
-
-    def test_matching_paren():
-        with raises(DocoptLanguageError):
-            docopt('Usage: prog [a [b]')
-        with raises(DocoptLanguageError):
-            docopt('Usage: prog [a [b] ] c )')
-
-
-    def test_allow_double_dash():
-        $this->assertEquals(docopt("usage: prog [-o] [--] <arg>\n\n-o",
-                      '-- -o') == {'-o': false, '<arg>': '-o', '--': true}
-        $this->assertEquals(docopt("usage: prog [-o] [--] <arg>\n\n-o",
-                      '-o 1') == {'-o': true, '<arg>': '1', '--': false}
-        with raises(DocoptExit):
-            docopt("usage: prog [-o] <arg>\n\n-o", '-- -o')  # '--' not allowed
-
-
-    def test_docopt():
-        doc = '''Usage: prog [-v] A
-
-        -v  Be verbose.'''
-        $this->assertEquals(docopt(doc, 'arg') == {'-v': false, 'A': 'arg'}
-        $this->assertEquals(docopt(doc, '-v arg') == {'-v': true, 'A': 'arg'}
-
-        doc = """Usage: prog [-vqr] [FILE]
-                  prog INPUT OUTPUT
-                  prog --help
-
-        Options:
-          -v  print status messages
-          -q  report only file names
-          -r  show all occurrences of the same error
-          --help
-
-        """
-        a = docopt(doc, '-v file.py')
-        $this->assertEquals(a == {'-v': true, '-q': false, '-r': false, '--help': false,
-                     'FILE': 'file.py', 'INPUT': null, 'OUTPUT': null}
-
-        a = docopt(doc, '-v')
-        $this->assertEquals(a == {'-v': true, '-q': false, '-r': false, '--help': false,
-                     'FILE': null, 'INPUT': null, 'OUTPUT': null}
-
-        with raises(DocoptExit):  # does not match
-            docopt(doc, '-v input.py output.py')
-
-        with raises(DocoptExit):
-            docopt(doc, '--fake')
-
-        with raises(SystemExit):
-            docopt(doc, '--hel')
-
-        #with raises(SystemExit):
-        #    docopt(doc, 'help')  XXX Maybe help command?
-
-
-    def test_language_errors():
-        with raises(DocoptLanguageError):
-            docopt('no usage with colon here')
-        with raises(DocoptLanguageError):
-            docopt("usage: here \n\n and again usage: here")
-
-
-    def test_issue_40():
-        with raises(SystemExit):  # i.e. shows help
-            docopt('usage: prog --help-commands | --help', '--help')
-        $this->assertEquals(docopt('usage: prog --aabb | --aa', '--aa') == {'--aabb': false,
-                                                               '--aa': true}
-
-
-    def test_issue34_unicode_strings():
-        try:
-            $this->assertEquals(docopt(eval("u'usage: prog [-o <a>]'"), ''),
-                    {'-o': false, '<a>': null}
-        except SyntaxError:
-            pass  # Python 3
-
-
-    def test_count_multiple_flags():
-        $this->assertEquals(docopt('usage: prog [-v]', '-v') == {'-v': true}
-        $this->assertEquals(docopt('usage: prog [-vv]', '') == {'-v': 0}
-        $this->assertEquals(docopt('usage: prog [-vv]', '-v') == {'-v': 1}
-        $this->assertEquals(docopt('usage: prog [-vv]', '-vv') == {'-v': 2}
-        with raises(DocoptExit):
-            docopt('usage: prog [-vv]', '-vvv')
-        $this->assertEquals(docopt('usage: prog [-v | -vv | -vvv]', '-vvv') == {'-v': 3}
-        $this->assertEquals(docopt('usage: prog -v...', '-vvvvvv') == {'-v': 6}
-        $this->assertEquals(docopt('usage: prog [--ver --ver]', '--ver --ver') == {'--ver': 2}
-
-
-    def test_count_multiple_commands():
-        $this->assertEquals(docopt('usage: prog [go]', 'go') == {'go': true}
-        $this->assertEquals(docopt('usage: prog [go go]', '') == {'go': 0}
-        $this->assertEquals(docopt('usage: prog [go go]', 'go') == {'go': 1}
-        $this->assertEquals(docopt('usage: prog [go go]', 'go go') == {'go': 2}
-        with raises(DocoptExit):
-            docopt('usage: prog [go go]', 'go go go')
-        $this->assertEquals(docopt('usage: prog go...', 'go go go go go') == {'go': 5}
-
-
-    def test_any_options_parameter():
-        with raises(DocoptExit):
-            docopt('usage: prog [options]', '-foo --bar --spam=eggs')
-    #    $this->assertEquals(docopt('usage: prog [options]', '-foo --bar --spam=eggs',
-    #                  any_options=true) == {'-f': true, '-o': 2,
-    #                                         '--bar': true, '--spam': 'eggs'}
-        with raises(DocoptExit):
-            docopt('usage: prog [options]', '--foo --bar --bar')
-    #    $this->assertEquals(docopt('usage: prog [options]', '--foo --bar --bar',
-    #                  any_options=true) == {'--foo': true, '--bar': 2}
-        with raises(DocoptExit):
-            docopt('usage: prog [options]', '--bar --bar --bar -ffff')
-    #    $this->assertEquals(docopt('usage: prog [options]', '--bar --bar --bar -ffff',
-    #                  any_options=true) == {'--bar': 3, '-f': 4}
-        with raises(DocoptExit):
-            docopt('usage: prog [options]', '--long=arg --long=another')
-    #    $this->assertEquals(docopt('usage: prog [options]', '--long=arg --long=another',
-    #                  any_options=true) == {'--long': ['arg', 'another']}
-
-
-    #def test_options_shortcut_multiple_commands():
-    #    # any_options is disabled
-    #    $this->assertEquals(docopt('usage: prog c1 [options] prog c2 [options]',
-    #        'c2 -o', any_options=true) == {'-o': true, 'c1': false, 'c2': true}
-    #    $this->assertEquals(docopt('usage: prog c1 [options] prog c2 [options]',
-    #        'c1 -o', any_options=true) == {'-o': true, 'c1': true, 'c2': false}
-
-
-    def test_options_shortcut_does_not_add_options_to_patter_second_time():
-        $this->assertEquals(docopt("usage: prog [options] [-a]\n\n-a -b", '-a'),
-                {'-a': true, '-b': false}
-        with raises(DocoptExit):
-            docopt("usage: prog [options] [-a]\n\n-a -b", '-aa')
-
-
-    def test_default_value_for_positional_arguments():
-        # disabled right now
-        $this->assertEquals(docopt("usage: prog [<p>]\n\n<p>  [default: x]", ''),
-                {'<p>': null}
-        #       {'<p>': 'x'}
-        $this->assertEquals(docopt("usage: prog [<p>]...\n\n<p>  [default: x y]", ''),
-                {'<p>': []}
-        #       {'<p>': ['x', 'y']}
-        $this->assertEquals(docopt("usage: prog [<p>]...\n\n<p>  [default: x y]", 'this'),
-                {'<p>': ['this']}
-        #       {'<p>': ['this']}
-
-
-    #def test_parse_defaults():
-    #    $this->assertEquals(parse_defaults("""usage: prog
-    #
-    #                          -o, --option <o>
-    #                          --another <a>  description
-    #                                         [default: x]
-    #                          <a>
-    #                          <another>  description [default: y]"""),
-    #           ([new Option('-o', '--option', 1, null),
-    #             new Option(null, '--another', 1, 'x')],
-    #            [new Argument('<a>', null),
-    #             new Argument('<another>', 'y')])
-    #
-    #    doc = '''
-    #    -h, --help  Print help message.
-    #    -o FILE     Output file.
-    #    --verbose   Verbose mode.'''
-    #    $this->assertEquals(parse_defaults(doc)[0] == [new Option('-h', '--help'),
-    #                                      new Option('-o', null, 1),
-    #                                      new Option(null, '--verbose')]
-
-
-    def test_issue_59():
-        $this->assertEquals(docopt("usage: prog --long=<a>", '--long=') == {'--long': ''}
-        $this->assertEquals(docopt("usage: prog -l <a>\n\n-l <a>", ['-l', '']) == {'-l': ''}
-
-
-    def test_options_first():
-        $this->assertEquals(docopt('usage: prog [--opt] [<args>...]',
-                      '--opt this that') == {'--opt': true,
-                                             '<args>': ['this', 'that']}
-        $this->assertEquals(docopt('usage: prog [--opt] [<args>...]',
-                      'this that --opt') == {'--opt': true,
-                                             '<args>': ['this', 'that']}
-        $this->assertEquals(docopt('usage: prog [--opt] [<args>...]',
-                      'this that --opt',
-                      options_first=true) == {'--opt': false,
-                                              '<args>': ['this', 'that', '--opt']}
-
-
-    def test_issue_68_options_shortcut_does_not_include_options_in_usage_patter():
-        args = docopt("usage: prog [-ab] [options]\n\n-x\n-y", '-ax')
-        # Need to use `is` (not `==`) since we want to make sure
-        # that they are not 1/0, but strictly true/false:
-        $this->assertEquals(args['-a'] is true
-        $this->assertEquals(args['-b'] is false
-        $this->assertEquals(args['-x'] is true
-        $this->assertEquals(args['-y'] is false
-
-
-*/
