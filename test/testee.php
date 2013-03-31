@@ -12,7 +12,7 @@ $ex = null;
 $result = null;
 ob_start();
 try {
-    $result = Docopt\docopt($in, array('exit'=>false));
+    $result = Docopt::handle($in, array('exit'=>false));
 }
 catch (Exception $ex) {
 }

@@ -11,24 +11,12 @@
 
 namespace
 {
-    use Docopt\ExitException;
-    use Docopt\TokenStream;
-    use Docopt\Response;
-    
-    /**
-     * Use a class in PHP because we can't autoload functions yet.
-     */
     class Docopt
     {
-        public $exit = true;
-        public $help = true;
-        public $optionsFirst = false;
-        public $version;
-        
         /**
          * API compatibility with python docopt
          */
-        static function docopt($doc, $params=array())
+        static function handle($doc, $params=array())
         {
             $argv = null;
             if (isset($params['argv'])) {
@@ -40,81 +28,14 @@ namespace
                 $params = array();
             }
             
-            $h = new static($params);
+            $h = new \Docopt\Handler($params);
             return $h->handle($doc, $argv);
         }
-        
-        public function __construct($options=array())
-        {
-            foreach ($options as $k=>$v)
-                $this->$k = $v;
-        }
-        
-        function handle($doc, $argv=null)
-        {
-            try {
-                if ($argv === null && isset($_SERVER['argv']))
-                    $argv = array_slice($_SERVER['argv'], 1);
-                
-                ExitException::$usage = Docopt\printable_usage($doc);
-                $options = Docopt\parse_defaults($doc);
-
-                $formalUse = Docopt\formal_usage(ExitException::$usage);
-                $pattern = Docopt\parse_pattern($formalUse, $options);
-                $argv = Docopt\parse_argv(new TokenStream($argv, 'ExitException'), $options, $this->optionsFirst);
-                foreach ($pattern->flat('AnyOptions') as $ao) {
-                    $docOptions = Docopt\parse_defaults($doc);
-                    $ao->children = array_diff((array)$docOptions, $pattern->flat('Option'));
-                }
-
-                Docopt\extras($this->help, $this->version, $argv, $doc);
-
-                list($matched, $left, $collected) = $pattern->fix()->match($argv);
-                if ($matched && !$left) {
-                    $return = array();
-                    foreach (array_merge($pattern->flat(), $collected) as $a) {
-                        $name = $a->name;
-                        if ($name)
-                            $return[$name] = $a->value;
-                    }
-                    return new Response($return);
-                }
-                throw new ExitException();
-            }
-            catch (ExitException $ex) {
-                $this->handleExit($ex);
-                return new Response(null, $ex->status, $ex->getMessage());
-            }
-        }
-        
-        function handleExit(ExitException $ex)
-        {
-            if ($this->exit) {
-                echo $ex->getMessage().PHP_EOL;
-                exit($ex->status);
-            }
-        }
     }
-
 }
 
 namespace Docopt
 {
-    /**
-     * @deprecated Use Docopt class as-is
-     */
-    class Handler extends \Docopt
-    {
-    }
-    
-    /**
-     * @deprecated Use Docopt::docopt(...)
-     */
-    function docopt()
-    {
-        return call_user_func_array(array('Docopt', 'docopt'), func_get_args());
-    }
-    
     /**
      * Return true if all cased characters in the string are uppercase and there is 
      * at least one cased character, false otherwise.
@@ -1109,6 +1030,65 @@ namespace Docopt
         if ($version && $vfound) {
             ExitException::$usage = null;
             throw new ExitException($version, 0);
+        }
+    }
+
+    class Handler
+    {
+        public $exit = true;
+        public $help = true;
+        public $optionsFirst = false;
+        public $version;
+        
+        public function __construct($options=array())
+        {
+            foreach ($options as $k=>$v)
+                $this->$k = $v;
+        }
+        
+        function handle($doc, $argv=null)
+        {
+            try {
+                if ($argv === null && isset($_SERVER['argv']))
+                    $argv = array_slice($_SERVER['argv'], 1);
+                
+                ExitException::$usage = printable_usage($doc);
+                $options = parse_defaults($doc);
+
+                $formalUse = formal_usage(ExitException::$usage);
+                $pattern = parse_pattern($formalUse, $options);
+                $argv = parse_argv(new TokenStream($argv, 'ExitException'), $options, $this->optionsFirst);
+                foreach ($pattern->flat('AnyOptions') as $ao) {
+                    $docOptions = parse_defaults($doc);
+                    $ao->children = array_diff((array)$docOptions, $pattern->flat('Option'));
+                }
+
+                extras($this->help, $this->version, $argv, $doc);
+
+                list($matched, $left, $collected) = $pattern->fix()->match($argv);
+                if ($matched && !$left) {
+                    $return = array();
+                    foreach (array_merge($pattern->flat(), $collected) as $a) {
+                        $name = $a->name;
+                        if ($name)
+                            $return[$name] = $a->value;
+                    }
+                    return new Response($return);
+                }
+                throw new ExitException();
+            }
+            catch (ExitException $ex) {
+                $this->handleExit($ex);
+                return new Response(null, $ex->status, $ex->getMessage());
+            }
+        }
+        
+        function handleExit(ExitException $ex)
+        {
+            if ($this->exit) {
+                echo $ex->getMessage().PHP_EOL;
+                exit($ex->status);
+            }
         }
     }
 
