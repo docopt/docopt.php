@@ -694,9 +694,14 @@ namespace Docopt
         
         public function __construct($source, $error)
         {
-            if (!is_array($source))
-                $source = preg_split('/\s+/', trim($source));
-
+            if (!is_array($source)) {
+                $source = trim($source);
+                if ($source)
+                    $source = preg_split('/\s+/', $source);
+                else
+                    $source = array();
+            }
+            
             parent::__construct($source);
                     
             $this->error = $error; 

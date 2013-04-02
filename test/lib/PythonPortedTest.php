@@ -12,7 +12,7 @@ use Docopt\Response;
 use Docopt\TokenStream;
 use Docopt\Command;
 
-class DocoptTest extends \PHPUnit_Framework_TestCase
+class PythonPortedTest extends \PHPUnit_Framework_TestCase
 {
     /**
      * The arguments from the docopt test file are the other way around.
