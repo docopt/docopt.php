@@ -111,7 +111,7 @@ API
     require('/path/to/src/docopt.php');
     
     // short form, simple API
-    $args = Docopt::docopt($doc);
+    $args = Docopt::handle($doc);
 
     // long form, simple API (equivalent to short)
     $params = array(
@@ -120,7 +120,7 @@ API
         'version'=>null,
         'optionsFirst'=>false,
     );
-    $args = Docopt::docopt($doc, $params);
+    $args = Docopt::handle($doc, $params);
     
     // long form, full API
     $handler = new \Docopt\Handler(array(
@@ -264,6 +264,7 @@ Each pattern can consist of the following elements:
 - **<arguments>**, **ARGUMENTS**. Arguments are specified as either
   upper-case words, e.g. ``my_program.php CONTENT-PATH`` or words
   surrounded by angular brackets: ``my_program.php <content-path>``.
+  
 - **--options**.  Options are words started with dash (``-``), e.g.
   ``--output``, ``-o``.  You can "stack" several of one-letter
   options, e.g. ``-oiv`` which will be the same as ``-o -i -v``. The
@@ -272,6 +273,7 @@ Each pattern can consist of the following elements:
   descriptions if you want your option to have an argument, a default
   value, or specify synonymous short/long versions of option (see next
   section on option descriptions).
+  
 - **commands** are words that do *not* follow the described above
   conventions of ``--options`` or ``<arguments>`` or ``ARGUMENTS``,
   plus two special commands: dash "``-``" and double dash "``--``"
@@ -281,22 +283,26 @@ Use the following constructs to specify patterns:
 
 - **[ ]** (brackets) **optional** elements.  e.g.: ``my_program.php
   [-hvqo FILE]``
+  
 - **( )** (parens) **required** elements.  All elements that are *not*
   put in **[ ]** are also required, e.g.: ``my_program.php
   --path=<path> <file>...`` is the same as ``my_program.php
   (--path=<path> <file>...)``.  (Note, "required options" might be not
   a good idea for your users).
+  
 - **|** (pipe) **mutually exclusive** elements. Group them using **(
   )** if one of the mutually exclusive elements is required:
   ``my_program.php (--clockwise | --counter-clockwise) TIME``. Group
   them using **[ ]** if none of the mutually-exclusive elements are
   required: ``my_program.php [--left | --right]``.
+  
 - **...** (ellipsis) **one or more** elements. To specify that
   arbitrary number of repeating elements could be accepted, use
   ellipsis (``...``), e.g.  ``my_program.php FILE ...`` means one or
   more ``FILE``-s are accepted.  If you want to accept zero or more
   elements, use brackets, e.g.: ``my_program.php [FILE ...]``. Ellipsis
   works as a unary operator on the expression to the left.
+  
 - **[options]** (case sensitive) shortcut for any options.  You can
   use it if you want to specify that the usage pattern could be
   provided with any options defined below in the option-descriptions
