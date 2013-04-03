@@ -987,7 +987,7 @@ namespace Docopt
                 $parsed = array_merge($parsed, parse_shorts($tokens, $options));
             }
             elseif ($optionsFirst) {
-                return array_merge($parsed, array_map(function($v) { return new Argument(null, $v); }, iterator_to_array($tokens)));
+                return array_merge($parsed, array_map(function($v) { return new Argument(null, $v); }, $tokens->left()));
             }
             else {
                 $parsed[] = new Argument(null, $tokens->move());

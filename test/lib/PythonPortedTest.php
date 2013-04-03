@@ -829,16 +829,26 @@ class PythonPortedTest extends TestCase
 
     public function testOptionsFirst()
     {
-        $this->assertEquals($this->docopt('usage: prog [--opt] [<args>...]',
-                      '--opt this that')->args, array('--opt'=>true,
-                                             '<args>'=>array('this', 'that')));
-        $this->assertEquals($this->docopt('usage: prog [--opt] [<args>...]',
-                      'this that --opt')->args, array('--opt'=>true,
-                                             '<args>'=>array('this', 'that')));
-        $this->assertEquals($this->docopt('usage: prog [--opt] [<args>...]',
-                      'this that --opt',
-                      array('optionsFirst'=>true))->args, array('--opt'=>false,
-                                              '<args>'=>array('this', 'that', '--opt')));
+        $this->assertEquals(
+            $this->docopt('usage: prog [--opt] [<args>...]', '--opt this that')->args, 
+            array('--opt'=>true, '<args>'=>array('this', 'that'))
+        );
+        
+        $this->assertEquals(
+            $this->docopt('usage: prog [--opt] [<args>...]', 'this that --opt')->args,
+            array('--opt'=>true, '<args>'=>array('this', 'that'))
+        );
+        
+        $this->assertEquals(
+            $this->docopt('usage: prog [--opt] [<args>...]', 'this that --opt', array('optionsFirst'=>true))->args, 
+            array('--opt'=>false, '<args>'=>array('this', 'that', '--opt'))
+        );
+        
+        // found issue with PHP version in this situation
+        $this->assertEquals(
+            $this->docopt('usage: prog [--opt=<val>] [<args>...]', ' --opt=foo this that --opt', array('optionsFirst'=>true))->args, 
+            array('--opt'=>'foo', '<args>'=>array('this', 'that', '--opt'))
+        );
     }
     
     public function testIssue68OptionsShortcutDoesNotIncludeOptionsInUsagePattern()
