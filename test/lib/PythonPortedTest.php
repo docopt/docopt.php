@@ -25,9 +25,9 @@ class PythonPortedTest extends \PHPUnit_Framework_TestCase
 
     function testPatternFlat()
     {
-        $this->assertEquals(
-            (new Required(array(new OneOrMore(new Argument('N')), 
-                        new Option('-a'), new Argument('M'))))->flat(),
+        $required = new Required(array(new OneOrMore(new Argument('N')), 
+                        new Option('-a'), new Argument('M')));
+        $this->assertEquals($required->flat(),
             array(new Argument('N'), new Option('-a'), new Argument('M'))
         );
     }
@@ -193,190 +193,281 @@ class PythonPortedTest extends \PHPUnit_Framework_TestCase
     
     public function testOptionMatch()
     {
+        $option = new Option('-a');
         $this->assertEquals(
-            (new Option('-a'))->match(array(new Option('-a', null, 0, true))),
+            $option->match(array(new Option('-a', null, 0, true))),
             array(true, array(), array(new Option('-a', null, 0, true)))
         );
+        
+        $option = new Option('-a');
         $this->assertEquals(
-            (new Option('-a'))->match(array(new Option('-x'))),
+            $option->match(array(new Option('-x'))),
             array(false, array(new Option('-x')), array())
         );
+        
+        $option = new Option('-a');
         $this->assertEquals(
-            (new Option('-a'))->match(array(new Argument('N'))),
+            $option->match(array(new Argument('N'))),
             array(false, array(new Argument('N')), array())
         );
+        
+        $option = new Option('-a');
         $this->assertEquals(
-            (new Option('-a'))->match(array(new Option('-x'), new Option('-a'), new Argument('N'))),
+            $option->match(array(new Option('-x'), new Option('-a'), new Argument('N'))),
                 array(true, array(new Option('-x'), new Argument('N')), array(new Option('-a')))
         );
+        
+        $option = new Option('-a');
         $this->assertEquals(
-            (new Option('-a'))->match(array(new Option('-a', null, 0, true), new Option('-a'))),
+            $option->match(array(new Option('-a', null, 0, true), new Option('-a'))),
                 array(true, array(new Option('-a')), array(new Option('-a', null, 0, true)))
         );
     }
     
     function testArgumentMatch()
     {
-        $this->assertEquals((new Argument('N'))->match(array(new Argument(null, 9))),
+        $argument = new Argument('N');
+        $this->assertEquals($argument->match(array(new Argument(null, 9))),
                 array(true, array(), array(new Argument('N', 9))));
-        $this->assertEquals((new Argument('N'))->match(array(new Option('-x'))),
+        
+        $argument = new Argument('N');
+        $this->assertEquals($argument->match(array(new Option('-x'))),
             array(false, array(new Option('-x')), array()));
-        $this->assertEquals((new Argument('N'))->match(array(new Option('-x'),
+        
+        $argument = new Argument('N');
+        $this->assertEquals($argument->match(array(new Option('-x'),
                                     new Option('-a'),
                                     new Argument(null, 5))),
                 array(true, array(new Option('-x'), new Option('-a')), array(new Argument('N', 5))));
-        $this->assertEquals((new Argument('N'))->match(array(new Argument(null, 9), new Argument(null, 0))),
+        
+        $argument = new Argument('N');
+        $this->assertEquals($argument->match(array(new Argument(null, 9), new Argument(null, 0))),
                 array(true, array(new Argument(null, 0)), array(new Argument('N', 9))));
     }
 
     function testCommandMatch()
     {
+        $command = new Command('c');
         $this->assertEquals(
-            (new Command('c'))->match(array(new Argument(null, 'c'))),
+            $command->match(array(new Argument(null, 'c'))),
                 array(true, array(), array(new Command('c', true)))
         );
+        
+        $command = new Command('c');
         $this->assertEquals(
-            (new Command('c'))->match(array(new Option('-x'))), 
+            $command->match(array(new Option('-x'))), 
             array(false, array(new Option('-x')), array())
         );
-        $this->assertEquals((new Command('c'))->match(array(new Option('-x'),
+        
+        $command = new Command('c');
+        $this->assertEquals($command->match(array(new Option('-x'),
                                    new Option('-a'),
                                    new Argument(null, 'c'))),
             array(true, array(new Option('-x'), new Option('-a')), array(new Command('c', true)))
         );
+        
+        $either = new Either(new Command('add', false), new Command('rm', false));
         $this->assertEquals(
-            (new Either(new Command('add', false), new Command('rm', false)))->match(
-                array(new Argument(null, 'rm'))),
+            $either->match(array(new Argument(null, 'rm'))),
             array(true, array(), array(new Command('rm', true)))
         );
     }
 
     function testOptionalMatch() 
     {
-        $this->assertEquals((new Optional(new Option('-a')))->match(array(new Option('-a'))),
+        $optional = new Optional(new Option('-a'));
+        $this->assertEquals(
+            $optional->match(array(new Option('-a'))),
             array(true, array(), array(new Option('-a')))
         );
-        $this->assertEquals((new Optional(new Option('-a')))->match(array()),
+        
+        $optional = new Optional(new Option('-a'));
+        $this->assertEquals(
+            $optional->match(array()),
             array(true, array(), array())
         );
-        $this->assertEquals((new Optional(new Option('-a')))->match(array(new Option('-x'))),
+        
+        $optional = new Optional(new Option('-a'));
+        $this->assertEquals(
+            $optional->match(array(new Option('-x'))),
             array(true, array(new Option('-x')), array())
         );
-        $this->assertEquals((new Optional(new Option('-a'), new Option('-b')))->match(array(new Option('-a'))),
+        
+        $optional = new Optional(new Option('-a'), new Option('-b'));
+        $this->assertEquals(
+            $optional->match(array(new Option('-a'))),
             array(true, array(), array(new Option('-a')))
         );
-        $this->assertEquals((new Optional(new Option('-a'), new Option('-b')))->match(array(new Option('-b'))),
+        
+        $optional = new Optional(new Option('-a'), new Option('-b'));
+        $this->assertEquals(
+            $optional->match(array(new Option('-b'))),
             array(true, array(), array(new Option('-b')))
         );
-        $this->assertEquals((new Optional(new Option('-a'), new Option('-b')))->match(array(new Option('-x'))),
+        
+        $optional = new Optional(new Option('-a'), new Option('-b'));
+        $this->assertEquals(
+            $optional->match(array(new Option('-x'))),
             array(true, array(new Option('-x')), array())
         );
-        $this->assertEquals((new Optional(new Argument('N')))->match(array(new Argument(null, 9))),
+        
+        $optional = new Optional(new Argument('N'));
+        $this->assertEquals(
+            $optional->match(array(new Argument(null, 9))),
             array(true, array(), array(new Argument('N', 9)))
         );
-        $this->assertEquals((new Optional(new Option('-a'), new Option('-b')))->match(
-                    array(new Option('-b'), new Option('-x'), new Option('-a'))),
+        
+        $optional = new Optional(new Option('-a'), new Option('-b'));
+        $this->assertEquals(
+            $optional->match(array(new Option('-b'), new Option('-x'), new Option('-a'))),
             array(true, array(new Option('-x')), array(new Option('-a'), new Option('-b')))
         );
     }
     
     function testRequiredMatch()
     {
-        $this->assertEquals((new Required(new Option('-a')))->match(array(new Option('-a'))),
+        $required = new Required(new Option('-a'));
+        $this->assertEquals($required->match(array(new Option('-a'))),
             array(true, array(), array(new Option('-a')))
         );
+        
+        $required = new Required(new Option('-a'));
         $this->assertEquals(
-            (new Required(new Option('-a')))->match(array()),
+            $required->match(array()),
             array(false, array(), array())
         );
+        
+        $required = new Required(new Option('-a'));
         $this->assertEquals(
-            (new Required(new Option('-a')))->match(array(new Option('-x'))),
+            $required->match(array(new Option('-x'))),
             array(false, array(new Option('-x')), array())
         );
+        
+        $required = new Required(new Option('-a'), new Option('-b'));
         $this->assertEquals(
-            (new Required(new Option('-a'), new Option('-b')))->match(array(new Option('-a'))),
+            $required->match(array(new Option('-a'))),
             array(false, array(new Option('-a')), array())
         );
     }
 
     function testEitherMatch()
     {
-        $this->assertEquals((new Either(new Option('-a'), new Option('-b')))->match(
-                array(new Option('-a'))),
+        $either = new Either(new Option('-a'), new Option('-b'));
+        $this->assertEquals(
+            $either->match(array(new Option('-a'))),
             array(true, array(), array(new Option('-a')))
         );
-        $this->assertEquals((new Either(new Option('-a'), new Option('-b')))->match(
-                array(new Option('-a'), new Option('-b'))),
+        
+        $either = new Either(new Option('-a'), new Option('-b'));
+        $this->assertEquals(
+            $either->match(array(new Option('-a'), new Option('-b'))),
             array(true, array(new Option('-b')), array(new Option('-a')))
         );
-        $this->assertEquals((new Either(new Option('-a'), new Option('-b')))->match(
-                array(new Option('-x'))),
+        
+        $either = new Either(new Option('-a'), new Option('-b'));
+        $this->assertEquals(
+            $either->match(array(new Option('-x'))),
             array(false, array(new Option('-x')), array())
         );
-        $this->assertEquals((new Either(new Option('-a'), new Option('-b'), new Option('-c')))->match(
-                array(new Option('-x'), new Option('-b'))),
+        
+        $either = new Either(new Option('-a'), new Option('-b'), new Option('-c'));
+        $this->assertEquals(
+            $either->match(array(new Option('-x'), new Option('-b'))),
             array(true, array(new Option('-x')), array(new Option('-b')))
         );
-        $this->assertEquals((new Either(new Argument('M'),
-                      new Required(new Argument('N'), new Argument('M'))))->match(
-                                       array(new Argument(null, 1), new Argument(null, 2))),
+        
+        $either = new Either(new Argument('M'),
+                      new Required(new Argument('N'), new Argument('M')));
+        $this->assertEquals(
+            $either->match(array(new Argument(null, 1), new Argument(null, 2))),
             array(true, array(), array(new Argument('N', 1), new Argument('M', 2)))
         );
     }
 
     function testOneOrMoreMatch()
     {
-        $this->assertEquals((new OneOrMore(new Argument('N')))->match(array(new Argument(null, 9))),
+        $oneOrMore = new OneOrMore(new Argument('N'));
+        $this->assertEquals($oneOrMore->match(array(new Argument(null, 9))),
             array(true, array(), array(new Argument('N', 9)))
         );
-        $this->assertEquals((new OneOrMore(new Argument('N')))->match(array()),
+        
+        $oneOrMore = new OneOrMore(new Argument('N'));
+        $this->assertEquals(
+            $oneOrMore->match(array()),
             array(false, array(), array())
         );
-        $this->assertEquals((new OneOrMore(new Argument('N')))->match(array(new Option('-x'))),
+        
+        $oneOrMore = new OneOrMore(new Argument('N'));
+        $this->assertEquals(
+            $oneOrMore->match(array(new Option('-x'))),
             array(false, array(new Option('-x')), array())
         );
-        $this->assertEquals((new OneOrMore(new Argument('N')))->match(
-                array(new Argument(null, 9), new Argument(null, 8))),
+        
+        $oneOrMore = new OneOrMore(new Argument('N'));
+        $this->assertEquals(
+            $oneOrMore->match(array(new Argument(null, 9), new Argument(null, 8))),
             array(true, array(), array(new Argument('N', 9), new Argument('N', 8)))
         );
-        $this->assertEquals((new OneOrMore(new Argument('N')))->match(
-                array(new Argument(null, 9), new Option('-x'), new Argument(null, 8))),
+        
+        $oneOrMore = new OneOrMore(new Argument('N'));
+        $this->assertEquals(
+            $oneOrMore->match(array(new Argument(null, 9), new Option('-x'), new Argument(null, 8))),
             array(true, array(new Option('-x')), array(new Argument('N', 9), new Argument('N', 8)))
         );
-        $this->assertEquals((new OneOrMore(new Option('-a')))->match(
-                array(new Option('-a'), new Argument(null, 8), new Option('-a'))),
+        
+        $oneOrMore = new OneOrMore(new Option('-a'));
+        $this->assertEquals(
+            $oneOrMore->match(array(new Option('-a'), new Argument(null, 8), new Option('-a'))),
             array(true, array(new Argument(null, 8)), array(new Option('-a'), new Option('-a')))
         );
-        $this->assertEquals((new OneOrMore(new Option('-a')))->match(array(new Argument(null, 8),
-                                              new Option('-x'))),
+        
+        $oneOrMore = new OneOrMore(new Option('-a'));
+        $this->assertEquals(
+            $oneOrMore->match(array(new Argument(null, 8), new Option('-x'))),
             array(false, array(new Argument(null, 8), new Option('-x')), array())
         );
-        $this->assertEquals((new OneOrMore(new Required(new Option('-a'), new Argument('N'))))->match(
-                array(new Option('-a'), new Argument(null, 1), new Option('-x'),
+        
+        $oneOrMore = new OneOrMore(new Required(new Option('-a'), new Argument('N')));
+        $this->assertEquals(
+            $oneOrMore->match(array(new Option('-a'), new Argument(null, 1), new Option('-x'),
                  new Option('-a'), new Argument(null, 2))),
             array(true, array(new Option('-x')),
                   array(new Option('-a'), new Argument('N', 1), new Option('-a'), new Argument('N', 2)))
         );
-        $this->assertEquals((new OneOrMore(new Optional(new Argument('N'))))->match(array(new Argument(null, 9))),
+        
+        $oneOrMore = new OneOrMore(new Optional(new Argument('N')));
+        $this->assertEquals(
+            $oneOrMore->match(array(new Argument(null, 9))),
             array(true, array(), array(new Argument('N', 9)))
         );
     }
 
     function testListArgumentMatch()
     {
-        $this->assertEquals((new Required(new Argument('N'), new Argument('N')))->fix()->match(
+        $input = new Required(new Argument('N'), new Argument('N'));
+        $this->assertEquals(
+            $input->fix()->match(
                 array(new Argument(null, '1'), new Argument(null, '2'))),
                         array(true, array(), array(new Argument('N', array('1', '2'))))
         );
-        $this->assertEquals((new OneOrMore(new Argument('N')))->fix()->match(
+        
+        $input = new OneOrMore(new Argument('N'));
+        $this->assertEquals(
+            $input->fix()->match(
               array(new Argument(null, '1'), new Argument(null, '2'), new Argument(null, '3'))),
                         array(true, array(), array(new Argument('N', array('1', '2', '3'))))
         );
-        $this->assertEquals((new Required(new Argument('N'), new OneOrMore(new Argument('N'))))->fix()->match(
+        
+        $input = new Required(new Argument('N'), new OneOrMore(new Argument('N')));
+        $this->assertEquals(
+            $input->fix()->match(
               array(new Argument(null, '1'), new Argument(null, '2'), new Argument(null, '3'))),
                         array(true, array(), array(new Argument('N', array('1', '2', '3'))))
         );
-        $this->assertEquals((new Required(new Argument('N'), new Required(new Argument('N'))))->fix()->match(
+        
+        $input = new Required(new Argument('N'), new Required(new Argument('N')));
+        $this->assertEquals(
+            $input->fix()->match(
                 array(new Argument(null, '1'), new Argument(null, '2'))),
                         array(true, array(), array(new Argument('N', array('1', '2'))))
         );
@@ -408,35 +499,46 @@ class PythonPortedTest extends \PHPUnit_Framework_TestCase
 
     function testFixPatternEither()
     {
+        $input = new Option('-a');
         $this->assertEquals(
-            (new Option('-a'))->either(), 
+            $input->either(), 
             new Either(new Required(new Option('-a')))
         );
+        
+        $input = new Argument('A');
         $this->assertEquals(
-            (new Argument('A'))->either(), 
+            $input->either(), 
             new Either(new Required(new Argument('A')))
         );
+        
+        $input = new Required(new Either(new Option('-a'), new Option('-b')),
+                        new Option('-c'));
         $this->assertEquals(
-            (new Required(new Either(new Option('-a'), new Option('-b')),
-                        new Option('-c')))->either(),
+            $input->either(),
             new Either(new Required(new Option('-a'), new Option('-c')),
                        new Required(new Option('-b'), new Option('-c')))
         );
-        $this->assertEquals(
-            (new Optional(new Option('-a'),
+        
+        $input = new Optional(new Option('-a'),
                           new Either(new Option('-b'),
-                          new Option('-c'))))->either(),
+                          new Option('-c')));
+        $this->assertEquals(
+            $input->either(),
             new Either(new Required(new Option('-b'), new Option('-a')),
                        new Required(new Option('-c'), new Option('-a')))
         );
+        
+        $input = new Either(new Option('-x'), new Either(new Option('-y'), new Option('-z')));
         $this->assertEquals(
-            (new Either(new Option('-x'), new Either(new Option('-y'), new Option('-z'))))->either(),
+            $input->either(),
             new Either(new Required(new Option('-x')), 
                new Required(new Option('-y')),
                new Required(new Option('-z')))
         );
+        
+        $input = new OneOrMore(new Argument('N'), new Argument('M'));
         $this->assertEquals(
-            (new OneOrMore(new Argument('N'), new Argument('M')))->either(),
+            $input->either(),
             new Either(new Required(new Argument('N'), new Argument('M'),
                             new Argument('N'), new Argument('M')))
         );
@@ -444,15 +546,22 @@ class PythonPortedTest extends \PHPUnit_Framework_TestCase
 
     function testPatternFixRepeatingArguments()
     {
-        $this->assertEquals((new Option('-a'))->fixRepeatingArguments(), new Option('-a'));
-        $this->assertEquals((new Argument('N', null))->fixRepeatingArguments(), new Argument('N', null));
-        $this->assertEquals((new Required(new Argument('N'),
-                        new Argument('N')))->fixRepeatingArguments(),
-                new Required(new Argument('N', array()), new Argument('N', array()))
+        $input = new Option('-a');
+        $this->assertEquals($input->fixRepeatingArguments(), new Option('-a'));
+        
+        $input = new Argument('N', null);
+        $this->assertEquals($input->fixRepeatingArguments(), new Argument('N', null));
+        
+        $input = new Required(new Argument('N'), new Argument('N'));
+        $this->assertEquals(
+            $input->fixRepeatingArguments(),
+            new Required(new Argument('N', array()), new Argument('N', array()))
         );
-        $this->assertEquals((new Either(new Argument('N'),
-                            new OneOrMore(new Argument('N'))))->fix(),
-                new Either(new Argument('N', array()), new OneOrMore(new Argument('N', array())))
+        
+        $input = new Either(new Argument('N'), new OneOrMore(new Argument('N')));
+        $this->assertEquals(
+            $input->fix(),
+            new Either(new Argument('N', array()), new OneOrMore(new Argument('N', array())))
         );
     }
 
