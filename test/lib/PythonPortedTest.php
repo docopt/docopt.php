@@ -60,9 +60,14 @@ class PythonPortedTest extends \PHPUnit_Framework_TestCase
     
     public function testOptionName()
     {
-        $this->assertEquals((new Option('-h', null))->name, '-h');
-        $this->assertEquals((new Option('-h', '--help'))->name, '--help');
-        $this->assertEquals((new Option(null, '--help'))->name, '--help');
+        $option = new Option('-h', null);
+        $this->assertEquals($option->name, '-h');
+        
+        $option = new Option('-h', '--help');
+        $this->assertEquals($option->name, '--help');
+        
+        $option = new Option(null, '--help');
+        $this->assertEquals($option->name, '--help');
     }
     
     public function testCommands()
@@ -788,10 +793,10 @@ class PythonPortedTest extends \PHPUnit_Framework_TestCase
                 array('<p>'=>null));
         #       {'<p>'=>'x'}
         $this->assertEquals($this->docopt("usage: prog [<p>]...\n\n<p>  [default: x y]", '')->args,
-                array('<p>'=>[]));
+                array('<p>'=>array()));
         #       {'<p>'=>['x', 'y']}
         $this->assertEquals($this->docopt("usage: prog [<p>]...\n\n<p>  [default: x y]", 'this')->args,
-                array('<p>'=>['this']));
+                array('<p>'=>array('this')));
         #       {'<p>'=>['this']}
     }
     
@@ -826,10 +831,10 @@ class PythonPortedTest extends \PHPUnit_Framework_TestCase
     {
         $this->assertEquals($this->docopt('usage: prog [--opt] [<args>...]',
                       '--opt this that')->args, array('--opt'=>true,
-                                             '<args>'=>['this', 'that']));
+                                             '<args>'=>array('this', 'that')));
         $this->assertEquals($this->docopt('usage: prog [--opt] [<args>...]',
                       'this that --opt')->args, array('--opt'=>true,
-                                             '<args>'=>['this', 'that']));
+                                             '<args>'=>array('this', 'that')));
         $this->assertEquals($this->docopt('usage: prog [--opt] [<args>...]',
                       'this that --opt',
                       array('optionsFirst'=>true))->args, array('--opt'=>false,
