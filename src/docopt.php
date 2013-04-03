@@ -233,7 +233,7 @@ namespace Docopt
                     $counts[$ser]['items'][] = $c;
                 }
                 
-                $repeatedCases = [];
+                $repeatedCases = array();
                 foreach ($counts as $c) {
                     if ($c['cnt'] > 1)
                         $repeatedCases = array_merge($repeatedCases, $c['items']);
