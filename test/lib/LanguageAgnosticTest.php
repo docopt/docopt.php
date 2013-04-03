@@ -81,7 +81,7 @@ class LanguageAgnosticTest implements \PHPUnit_Framework_Test, \PHPUnit_Framewor
 		        $found = array('user-error');
 		    }
 		    elseif (empty($opt->args)) {
-		        $found = [];
+		        $found = array();
 		    }
 		    else {
 		        $found = $opt->args;
