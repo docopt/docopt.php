@@ -16,7 +16,8 @@ of bugfixes in the Python version.
     - API has changed slightly. ``Docopt\docopt`` has been renamed to ``Docopt::handle``
       to fix autoloader support. See issue #3.
 
-    - Compatibility with Python master branch at commit `d5b96f878a <https://github.com/docopt/docopt/commit/d5b96f878abbda51b62f1e28010d2b42b19a27dc>`_
+    - Compatibility with Python master branch at commit `d5b96f878a 
+      <https://github.com/docopt/docopt/commit/d5b96f878abbda51b62f1e28010d2b42b19a27dc>`_
 
     - Potentially serious BC break in `issue 102 <https://github.com/docopt/docopt/issues/102>`_
 
@@ -226,14 +227,24 @@ Help message consists of 2 sections:
       --quiet      print less text
       --verbose    print more text
 
-Their format is described below; other text is ignored.
+Sections consist of a header and a body. The section body can begin on
+the same line as the header, but if it spans multiple lines, it must be 
+indented. A section is terminated by an empty line or a string with no
+indentation::
+
+    Section header: Section body
+    
+    Section header:
+      Section body, which is indented at least
+      one space or tab from the section header
+
+    Section header: Section body, which is indented at least
+      one space or tab from the section header
 
 
 Usage section format
 ----------------------------------------------------------------------
 
-**Usage pattern** is a substring of ``doc`` that starts with
-``usage:`` (case *insensitive*) and ends with a *visibly* empty line.
 Minimum example::
 
     Usage: my_program.php
@@ -315,11 +326,11 @@ I.e. invoked with ``my_program.php file1 file2 --path=./here
 ['file1', 'file2']`` and ``args['--path'] == ['./here', './there']``.
 
 
-Option descriptions format
+Options section format
 ----------------------------------------------------------------------
 
-**Option descriptions** consist of a list of options that you put
-below your usage patterns.
+The **Option section** is an optional section that contains a list of 
+options that can document or supplement your usage pattern.
 
 It is necessary to list option descriptions in order to specify:
 
@@ -329,8 +340,9 @@ It is necessary to list option descriptions in order to specify:
 
 The rules are as follows:
 
-- Every line in ``doc`` that starts with ``-`` or ``--`` (not counting
-  spaces) is treated as an option description, e.g.::
+- Every line in the options section body that starts with one or more
+  horizontal whitespace characters, followed by ``-`` or ``--``is treated
+  as an option description, e.g.::
 
     Options:
       --verbose   # GOOD
