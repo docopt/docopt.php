@@ -4,8 +4,9 @@ $testPath = __DIR__;
 require $basePath.'/src/docopt.php';
 require_once 'PHPUnit/Autoload.php';
 
-require $testPath.'/lib/PythonPortedTest.php';
+require $testPath.'/lib/TestCase.php';
 require $testPath.'/lib/LanguageAgnosticTest.php';
+require $testPath.'/lib/PythonPortedTest.php';
 
 $options = array(
     'filter'=>null,

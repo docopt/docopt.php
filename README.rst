@@ -11,7 +11,7 @@ As a result, unless a bug is present only in the PHP version, pull requests
 are unlikely to be accepted unless they are themselves direct transliterations
 of bugfixes in the Python version. 
 
-  New in version 0.6.1:
+  New in version 0.7.0:
   
     - API has changed slightly. ``Docopt\docopt`` has been renamed to ``Docopt::handle``
       to fix autoloader support. See issue #3.
@@ -19,7 +19,9 @@ of bugfixes in the Python version.
     - Compatibility with Python master branch at commit `d5b96f878a 
       <https://github.com/docopt/docopt/commit/d5b96f878abbda51b62f1e28010d2b42b19a27dc>`_
 
-    - Potentially serious BC break in `issue 102 <https://github.com/docopt/docopt/issues/102>`_
+    - Significant BC break. Existing users should read the information below about Usage and
+      Option sections. See `issue 102 <https://github.com/docopt/docopt/issues/102>`_ for more
+      info.
 
 Please see the `Python version's README <https://github.com/docopt/docopt/blob/master/README.rst>`_ 
 for any new and breaking changes that are not specific to the PHP version.
@@ -85,7 +87,7 @@ Create a ``composer.json`` file for your project
 
     {
         "require": {
-            "docopt/docopt": ">=0.6.*"
+            "docopt/docopt": ">=0.7.*"
         }
     }
 

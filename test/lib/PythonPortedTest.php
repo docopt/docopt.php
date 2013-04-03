@@ -11,7 +11,7 @@ use Docopt\Either;
 use Docopt\Response;
 use Docopt\Command;
 
-class PythonPortedTest extends \PHPUnit_Framework_TestCase
+class PythonPortedTest extends TestCase
 {
     /**
      * The arguments from the docopt test file are the other way around.
@@ -857,13 +857,6 @@ class PythonPortedTest extends \PHPUnit_Framework_TestCase
         
         $result = $this->docopt("usage: prog [-l LEVEL] [--] <args>...\noptions: -l LEVEL", "-l -- 1 2");
         $this->assertFalse($result->success);
-    }
-
-    private function docopt($usage, $args='', $extra=array())
-    {
-        $extra = array_merge(array('exit'=>false, 'help'=>false), $extra);
-        $handler = new \Docopt\Handler($extra);
-        return call_user_func(array($handler, 'handle'), $usage, $args);
     }
     
     public function testParseSection()
