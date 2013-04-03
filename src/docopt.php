@@ -58,29 +58,7 @@ namespace Docopt
         }
         return false;
     }
-
-    /**
-     * The PHP version of this function doesn't work properly if the values aren't scalar.
-     */
-    function array_count_values($array)
-    {
-        $counts = array();
-        foreach ($array as $v) {
-            if ($v && is_scalar($v))
-                $key = $v;
-            elseif (is_object($v))
-                $key = spl_object_hash($v);
-            else
-                $key = serialize($v);
-            
-            if (!isset($counts[$key]))
-                $counts[$key] = array($v, 1);
-            else
-                $counts[$key][1]++;
-        }
-        return $counts;
-    }
-
+    
     /**
      * The PHP version of this doesn't support array iterators
      */
@@ -121,19 +99,34 @@ namespace Docopt
         $cls = get_class($obj);
         return substr($cls, strpos($cls, '\\')+1);
     }
+    
+    function dumpw($val)
+    {
+        echo dump($val);
+        echo PHP_EOL;
+    }
 
     function dump($val)
     {
+        $out = "";
         if (is_array($val) || $val instanceof \Traversable) {
-            echo '[';
+            $out = '[';
             $cur = array();
-            foreach ($val as $i)
-                $cur[] = $i->dump();
-            echo implode(', ', $cur);
-            echo ']';
+            foreach ($val as $i) {
+                if (is_object($i))
+                    $cur[] = $i->dump();
+                elseif (is_array($i))
+                    $cur[] = dump($i);
+                else
+                    $cur[] = dump_scalar($i);
+            }
+            $out .= implode(', ', $cur);
+            $out .= ']';
         }
         else
-            echo $val->dump();
+            $out .=$val->dump();
+        
+        return $out;
     }
 
     function dump_scalar($scalar)
@@ -223,19 +216,30 @@ namespace Docopt
          * Fix elements that should accumulate/increment values.
          */
         public function fixRepeatingArguments()
-        {
+        {   
             $either = array();
             foreach ($this->either()->children as $c) {
                 $either[] = $c->children;
             }
             
             foreach ($either as $case) {
-                $case = array_map(
-                    function($value) { return $value[0]; },
-                    array_filter(array_count_values($case), function($value) { return $value[1] > 1; })
-                );
+                $counts = array();
+                foreach ($case as $c) {
+                    $ser = serialize($c);
+                    if (!isset($counts[$ser]))
+                        $counts[$ser] = array('cnt'=>0, 'items'=>array());
+                    
+                    $counts[$ser]['cnt']++;
+                    $counts[$ser]['items'][] = $c;
+                }
                 
-                foreach ($case as $e) {
+                $repeatedCases = [];
+                foreach ($counts as $c) {
+                    if ($c['cnt'] > 1)
+                        $repeatedCases = array_merge($repeatedCases, $c['items']);
+                }
+                
+                foreach ($repeatedCases as $e) {
                     if ($e instanceof Argument || ($e instanceof Option && $e->argcount)) {
                         if (!$e->value)
                             $e->value = array();
@@ -264,12 +268,11 @@ namespace Docopt
                 $types = array();
                 foreach ($children as $c) {
                     if (is_object($c)) {
-                        $cls = get_class($c);
-                        $types[] = substr($cls, strrpos($cls, '\\')+1);
+                        $types[get_class_name($c)] = true;
                     }
                 }
                 
-                if (in_array('Either', $types)) {
+                if (isset($types['Either'])) {
                     $either = null;
                     foreach ($children as $c) {
                         if ($c instanceof Either) {
@@ -283,7 +286,7 @@ namespace Docopt
                         $groups[] = array_merge(array($c), $children);
                     }
                 }
-                elseif (in_array('Required', $types)) {
+                elseif (isset($types['Required'])) {
                     $required = null;
                     foreach ($children as $c) {
                         if ($c instanceof Required) {
@@ -294,7 +297,7 @@ namespace Docopt
                     unset($children[array_search($required, $children)]);
                     $groups[] = array_merge($required->children, $children);
                 }
-                elseif (in_array('Optional', $types)) {
+                elseif (isset($types['Optional'])) {
                     $optional = null;
                     foreach ($children as $c) {
                         if ($c instanceof Optional) {
@@ -305,7 +308,7 @@ namespace Docopt
                     unset($children[array_search($optional, $children)]);
                     $groups[] = array_merge($optional->children, $children);
                 }
-                elseif (in_array('AnyOptions', $types)) {
+                elseif (isset($types['AnyOptions'])) {
                     $optional = null;
                     foreach ($children as $c) {
                         if ($c instanceof AnyOptions) {
@@ -316,7 +319,7 @@ namespace Docopt
                     unset($children[array_search($optional, $children)]);
                     $groups[] = array_merge($optional->children, $children);
                 }
-                elseif (in_array('OneOrMore', $types)) {
+                elseif (isset($types['OneOrMore'])) {
                     $oneormore = null;
                     foreach ($children as $c) {
                         if ($c instanceof OneOrMore) {
@@ -328,7 +331,7 @@ namespace Docopt
                     $groups[] = array_merge($oneormore->children, $oneormore->children, $children);
                 }
                 else {
-                    $ret[] = $children;
+                    array_unshift($ret, $children);
                 }
             }
             
@@ -444,6 +447,7 @@ namespace Docopt
 
     class Argument extends ChildPattern
     {
+        /* {{{ this stuff is against childpattern in the python version but it interferes with name() */
         public $name;
         public $value;
         
@@ -452,6 +456,7 @@ namespace Docopt
             $this->name = $name;
             $this->value = $value;
         }
+        /* }}} */
         
         public function singleMatch($left)
         {
@@ -481,7 +486,7 @@ namespace Docopt
 
         public function dump()
         {
-            return "Argument('".dump_scalar($this->name)."', ".dump_scalar($this->value)."')";
+            return get_class_name($this)."(".dump_scalar($this->name).", ".dump_scalar($this->value).")";
         }
     }
 
@@ -578,7 +583,7 @@ namespace Docopt
 
         public function dump()
         {
-            return "Option('{$this->short}', ".dump_scalar($this->long).", ".dump_scalar($this->argcount).", ".dump_scalar($this->value).")";
+            return "Option(".dump_scalar($this->short).", ".dump_scalar($this->long).", ".dump_scalar($this->argcount).", ".dump_scalar($this->value).")";
         }
     }
 
@@ -688,11 +693,11 @@ namespace Docopt
         }
     }
 
-    class TokenStream extends \ArrayIterator
+    class Tokens extends \ArrayIterator
     {
         public $error;
         
-        public function __construct($source, $error)
+        public function __construct($source, $error='ExitException')
         {
             if (!is_array($source)) {
                 $source = trim($source);
@@ -707,11 +712,28 @@ namespace Docopt
             $this->error = $error; 
         }
         
+        public static function fromPattern($source)
+        {
+            $source = preg_replace('@([\[\]\(\)\|]|\.\.\.)@', ' $1 ', $source);
+            $source = preg_split('@\s+|(\S*<.*?>)@', $source, null, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+            
+            return new static($source, 'LanguageError');
+        }
+        
         function move()
         {
             $item = $this->current();
             $this->next();
             return $item;
+        }
+        
+        function left()
+        {
+            $left = array();
+            while (($token = $this->move()) !== null) {
+                $left[] = $token;
+            }
+            return $left;
         }
         
         function raiseException($message)
@@ -741,8 +763,8 @@ namespace Docopt
 
         if (strpos($long, '--') !== 0)
             throw new \UnexpectedValueExeption();
-
-        if (!$value) $value = null;
+        
+        $value = (!$eq && !$value) ? null : $value;
 
         $similar = array_filter($options, function($o) use ($long) { return $o->long && $o->long == $long; }, true);
         if ('ExitException' == $tokens->error && !$similar)
@@ -769,7 +791,7 @@ namespace Docopt
             }
             else {
                 if ($value === null) {
-                    if ($tokens->current() === null) {
+                    if ($tokens->current() === null || $tokens->current() == "--") {
                         $tokens->raiseException("{$o->long} requires argument");
                     }
                     $value = $tokens->move();
@@ -818,7 +840,7 @@ namespace Docopt
                 $value = null;
                 if ($o->argcount != 0) {
                     if ($left == '') {
-                        if ($tokens->current() === null)
+                        if ($tokens->current() === null || $tokens->current() == '--')
                             $tokens->raiseException("$short requires argument");
                         $value = $tokens->move();
                     }
@@ -839,11 +861,10 @@ namespace Docopt
 
     function parse_pattern($source, \ArrayIterator $options)
     {
-        $tokens = new TokenStream(preg_replace('@([\[\]\(\)\|]|\.\.\.)@', ' $1 ', $source), 'LanguageError');
-        
+        $tokens = Tokens::fromPattern($source);
         $result = parse_expr($tokens, $options);
         if ($tokens->current() != null) {
-            $tokens->raiseException('unexpected ending: '.implode(' ', $tokens));
+            $tokens->raiseException('unexpected ending: '.implode(' ', $tokens->left()));
         }
         return new Required($result);
     }
@@ -908,6 +929,7 @@ namespace Docopt
     {
         $token = $tokens->current();
         $result = array();
+        
         if ($token == '(' || $token == '[') {
             $tokens->move();
             
@@ -953,8 +975,8 @@ namespace Docopt
         
         while ($tokens->current() !== null) {
             if ($tokens->current() == '--') {
-                foreach ($tokens as $v) {
-                    $parsed[] = new Argument(null, $v);
+                while ($tokens->current() !== null) {
+                    $parsed[] = new Argument(null, $tokens->move());
                 }
                 return $parsed;
             }
@@ -975,37 +997,42 @@ namespace Docopt
     }
 
     function parse_defaults($doc)
-    {
-        $splitTmp = array_slice(preg_split('@\n[ ]*(<\S+?>|-\S+?)@', $doc, null, PREG_SPLIT_DELIM_CAPTURE), 1);
-        $split = array();
-        for ($cnt = count($splitTmp), $i=0; $i < $cnt; $i+=2) {
-            $split[] = $splitTmp[$i] . (isset($splitTmp[$i+1]) ? $splitTmp[$i+1] : '');
+    {   
+        $defaults = array();
+        foreach (parse_section('options:', $doc) as $s) {
+            # FIXME corner case "bla: options: --foo"
+            list (, $s) = explode(':', $s, 2);
+            $splitTmp = array_slice(preg_split("@\n *(-\S+?)@", "\n".$s, null, PREG_SPLIT_DELIM_CAPTURE), 1);
+            $split = array();
+            for ($cnt = count($splitTmp), $i=0; $i < $cnt; $i+=2) {
+                $split[] = $splitTmp[$i] . (isset($splitTmp[$i+1]) ? $splitTmp[$i+1] : '');
+            }
+            $options = array();
+            foreach ($split as $s) {
+                if (strpos($s, '-') === 0)
+                    $options[] = Option::parse($s);
+            }
+            $defaults = array_merge($defaults, $options);
         }
-        $options = new \ArrayIterator();
-        foreach ($split as $s) {
-            if (strpos($s, '-') === 0)
-                $options[] = Option::parse($s);
+        
+        return new \ArrayIterator($defaults);
+    }
+    
+    function parse_section($name, $source)
+    {
+        $ret = array();
+        if (preg_match_all('@^([^\n]*'.$name.'[^\n]*\n?(?:[ \t].*?(?:\n|$))*)@im', $source, $matches, PREG_SET_ORDER)) {
+            foreach ($matches as $match) {
+                $ret[] = trim($match[0]);
+            }
         }
-        return $options;
+        return $ret;
     }
-
-    function printable_usage($doc)
+    
+    function formal_usage($section)
     {
-        $usageSplit = preg_split("@([Uu][Ss][Aa][Gg][Ee]:)@", $doc, null, PREG_SPLIT_DELIM_CAPTURE);
-        
-        if (count($usageSplit) < 3)
-            throw new LanguageError('"usage:" (case-insensitive) not found.');
-        elseif (count($usageSplit) > 3)
-            throw new LanguageError('More than one "usage:" (case-insensitive).');
-        
-        $split = preg_split("@\n\s*\n@", implode('', array_slice($usageSplit, 1)));
-        
-        return trim($split[0]);
-    }
-
-    function formal_usage($printableUsage)
-    {
-        $pu = array_slice(preg_split('/\s+/', $printableUsage), 1);
+        list (, $section) = explode(':', $section, 2);  # drop "usage:"
+        $pu = preg_split('/\s+/', trim($section));
         
         $ret = array();
         foreach (array_slice($pu, 1) as $s) {
@@ -1057,15 +1084,27 @@ namespace Docopt
                 if ($argv === null && isset($_SERVER['argv']))
                     $argv = array_slice($_SERVER['argv'], 1);
                 
-                ExitException::$usage = printable_usage($doc);
+                $usageSections = parse_section('usage:', $doc);
+                if (count($usageSections) == 0)
+                    throw new LanguageError('"usage:" (case-insensitive) not found.');
+                elseif (count($usageSections) > 1)
+                    throw new LanguageError('More than one "usage:" (case-insensitive).');
+                $usage = $usageSections[0];
+                
+                // temp fix until python port provides solution
+                ExitException::$usage = $usage;
+                
                 $options = parse_defaults($doc);
-
-                $formalUse = formal_usage(ExitException::$usage);
+                
+                $formalUse = formal_usage($usage);
                 $pattern = parse_pattern($formalUse, $options);
-                $argv = parse_argv(new TokenStream($argv, 'ExitException'), $options, $this->optionsFirst);
+                
+                $argv = parse_argv(new Tokens($argv), $options, $this->optionsFirst);
+                
+                $patternOptions = $pattern->flat('Option');
                 foreach ($pattern->flat('AnyOptions') as $ao) {
                     $docOptions = parse_defaults($doc);
-                    $ao->children = array_diff((array)$docOptions, $pattern->flat('Option'));
+                    $ao->children = array_diff((array)$docOptions, $patternOptions);
                 }
 
                 extras($this->help, $this->version, $argv, $doc);
@@ -1138,7 +1177,7 @@ namespace Docopt
             unset($this->args[$offset]);
         }
         
-        public function getIterator ()
+        public function getIterator()
         {
             return new \ArrayIterator($this->args);
         }

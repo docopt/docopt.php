@@ -9,7 +9,6 @@ use Docopt\Option;
 use Docopt\Optional;
 use Docopt\Either;
 use Docopt\Response;
-use Docopt\TokenStream;
 use Docopt\Command;
 
 class PythonPortedTest extends \PHPUnit_Framework_TestCase
@@ -66,9 +65,6 @@ class PythonPortedTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals((new Option(null, '--help'))->name, '--help');
     }
     
-    /**
-     * @group faulty
-     */
     public function testCommands()
     {
         $this->assertEquals($this->docopt('Usage: prog add', 'add')->args, array('add' => true));
@@ -83,27 +79,25 @@ class PythonPortedTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($this->docopt('Usage: prog a b', 'b a')->status, 1);
     }
 
-    public function testPrintableAndFormalUsage()
+    public function testFormalUsage()
     {
         $doc = 
             "Usage: prog [-hv] ARG\n"
-           ."       prog N M\n"
+           ."           prog N M\n"
            ."\n"
            ."prog is a program"
         ;
+
+        list ($usage, ) = \Docopt\parse_section('usage:', $doc);
         
-        $this->assertEquals(\Docopt\printable_usage($doc), "Usage: prog [-hv] ARG\n       prog N M");
-        $this->assertEquals(\Docopt\formal_usage(\Docopt\printable_usage($doc)), "( [-hv] ARG ) | ( N M )");
-        $this->assertEquals(\Docopt\printable_usage("uSaGe: prog ARG\n\t \t\n bla"), "uSaGe: prog ARG");
+        $this->assertEquals($usage, "Usage: prog [-hv] ARG\n           prog N M");
+        $this->assertEquals(\Docopt\formal_usage($usage), "( [-hv] ARG ) | ( N M )");
     }
     
-    /**
-     * @group faulty
-     */
-    public function testArgv()
+    public function testParseArgv()
     {
         $o = new \ArrayIterator(array(new Option('-h'), new Option('-v', '--verbose'), new Option('-f', '--file', 1)));
-        $ts = function($s) { return new TokenStream($s, 'ExitException'); };
+        $ts = function($s) { return new \Docopt\Tokens($s, 'ExitException'); };
         
         $this->assertEquals(\Docopt\parse_argv($ts(''), $o), array());
         $this->assertEquals(\Docopt\parse_argv($ts('-h'), $o), array(new Option('-h', null, 0, true)));
@@ -412,9 +406,6 @@ class PythonPortedTest extends \PHPUnit_Framework_TestCase
         );
     }
 
-    /**
-     * @group faulty
-     */
     function testFixPatternEither()
     {
         $this->assertEquals(
@@ -451,9 +442,6 @@ class PythonPortedTest extends \PHPUnit_Framework_TestCase
         );
     }
 
-    /**
-     * @group faulty
-     */
     function testPatternFixRepeatingArguments()
     {
         $this->assertEquals((new Option('-a'))->fixRepeatingArguments(), new Option('-a'));
@@ -504,32 +492,33 @@ class PythonPortedTest extends \PHPUnit_Framework_TestCase
         $result = $this->docopt('Usage: prog', '--non-existent');
         $this->assertFalse($result->success);
 
-        $result = $this->docopt("Usage: prog array(--version --verbose)\n\n
-                      --version\n--verbose", '--ver');
+        $result = $this->docopt("Usage: prog [--version --verbose]\n".
+               "Options: --version\n --verbose", '--ver');
+        
         $this->assertFalse($result->success);
     }
 
     function testLongOptionsErrorHandlingPart2()
     {
         $this->setExpectedException('Docopt\LanguageError');
-        $result = $this->docopt("Usage: prog --long\n\n--long ARG");
+        $result = $this->docopt("Usage: prog --long\nOptions: --long ARG");
     }
 
     function testLongOptionsErrorHandlingPart3()
     {
-        $result = $this->docopt("Usage: prog --long ARG\n\n--long ARG", '--long');
+        $result = $this->docopt("Usage: prog --long ARG\nOptions: --long ARG", '--long');
         $this->assertFalse($result->success);
     }
 
     function testLongOptionsErrorHandlingPart4()
     {
         $this->setExpectedException('Docopt\LanguageError');
-        $result = $this->docopt("Usage: prog --long=ARG\n\n--long");
+        $result = $this->docopt("Usage: prog --long=ARG\nOptions: --long");
     }
 
     function testLongOptionsErrorHandlingPart5()
     {
-        $result = $this->docopt("Usage: prog --long\n\n--long", '--long=ARG');
+        $result = $this->docopt("Usage: prog --long\nOptions: --long", '--long=ARG');
         $this->assertFalse($result->success);
     }
     
@@ -537,9 +526,8 @@ class PythonPortedTest extends \PHPUnit_Framework_TestCase
     function testShortOptionsErrorHandlingPart1()
     {
         $this->setExpectedException('Docopt\LanguageError');
-        $this->docopt("Usage: prog -x\n\n-x  this\n-x  that");
+        $this->docopt("Usage: prog -x\nOptions: -x  this\n -x  that");
     }
-    
     
     function testShortOptionsErrorHandlingPart2()
     {
@@ -550,7 +538,7 @@ class PythonPortedTest extends \PHPUnit_Framework_TestCase
     function testShortOptionsErrorHandlingPart3()
     {
         $this->setExpectedException('Docopt\LanguageError');
-        $this->docopt("Usage: prog -o\n\n-o ARG");
+        $this->docopt("Usage: prog -o\nOptions: -o ARG");
     }
     
     function testShortOptionsErrorHandlingPart4()
@@ -565,9 +553,6 @@ class PythonPortedTest extends \PHPUnit_Framework_TestCase
         $this->docopt('Usage: prog [a [b]');
     }
     
-    /**
-     * @group faulty
-     */
     function testMatchingParenPart2()
     {
         $this->setExpectedException('Docopt\LanguageError');
@@ -576,21 +561,20 @@ class PythonPortedTest extends \PHPUnit_Framework_TestCase
 
     function testAllowDoubleDash()
     {
-        $this->assertEquals($this->docopt("usage: prog [-o] [--] <arg>\n\n-o",
+        $this->assertEquals($this->docopt("usage: prog [-o] [--] <arg>\nOptions: -o",
                       '-- -o')->args, array('-o'=> false, '<arg>'=>'-o', '--'=>true)
         );
-        $this->assertEquals($this->docopt("usage: prog [-o] [--] <arg>\n\n-o",
+        $this->assertEquals($this->docopt("usage: prog [-o] [--] <arg>\nOptions: -o",
                       '-o 1')->args, array('-o'=>true, '<arg>'=>'1', '--'=>false)
         );
-        $result = $this->docopt("usage: prog [-o] <arg>\n\n-o", '-- -o');
+        
+        $result = $this->docopt("usage: prog [-o] <arg>\nOptions: -o", '-- -o'); # "--" is not allowed; FIXME?
         $this->assertFalse($result->success);
     }
     
     function testDocopt()
     {
-        $doc = "Usage: prog [-v] A
-
-        -v  Be verbose.";
+        $doc = "Usage: prog [-v] A\n\n  Options: -v  Be verbose.";
         
         $this->assertEquals($this->docopt($doc, 'arg')->args, array('-v'=>false, 'A'=>'arg'));
         $this->assertEquals($this->docopt($doc, '-v arg')->args, array('-v'=>true, 'A'=>'arg'));
@@ -645,41 +629,6 @@ class PythonPortedTest extends \PHPUnit_Framework_TestCase
                                                                '--aa'=>true));
     }
 
-    /**
-     * @group faulty
-     */
-    function testCountMultipleFlags()
-    {
-        $this->assertEquals($this->docopt('usage: prog [-v]', '-v')->args, array('-v'=>true));
-        $this->assertEquals($this->docopt('usage: prog [-vv]', '')->args, array('-v'=>0));
-        $this->assertEquals($this->docopt('usage: prog [-vv]', '-v')->args, array('-v'=>1));
-        $this->assertEquals($this->docopt('usage: prog [-vv]', '-vv')->args, array('-v'=>2));
-        
-        $result = $this->$this->docopt('usage: prog [-vv]', '-vvv');
-        $this->assertFalse($result->success);
-        
-        $this->assertEquals($this->docopt('usage: prog [-v | -vv | -vvv]', '-vvv')->args, array('-v'=>3));
-        $this->assertEquals($this->docopt('usage: prog -v...', '-vvvvvv')->args, array('-v'=>6));
-        $this->assertEquals($this->docopt('usage: prog [--ver --ver]', '--ver --ver')->args, array('--ver'=>2));
-    }
-    
-    /**
-     * @group faulty
-     */
-    function testCountMultipleCommands()
-    {
-        $this->assertEquals($this->docopt('usage: prog [go]', 'go')->args, array('go'=>true));
-        $this->assertEquals($this->docopt('usage: prog [go go]', '')->args, array('go'=>0));
-        $this->assertEquals($this->docopt('usage: prog [go go]', 'go')->args, array('go'=>1));
-        $this->assertEquals($this->docopt('usage: prog [go go]', 'go go')->args, array('go'=>2));
-        
-        $result = $this->$this->docopt('usage: prog [go go]', 'go go go');
-        $this->assertFalse($result->success);
-        
-        $this->assertEquals($this->docopt('usage: prog go...', 'go go go go go')->args, array('go'=>5));
-    }
-
-
     function testAnyOptionsParameter()
     {
         $result = $this->docopt('usage: prog [options]', '-foo --bar --spam=eggs');
@@ -716,16 +665,13 @@ class PythonPortedTest extends \PHPUnit_Framework_TestCase
 
     public function testOptionsShortcutDoesNotAddOptionsToPatternSecondTime()
     {
-        $this->assertEquals($this->docopt("usage: prog [options] [-a]\n\n-a -b", '-a')->args,
+        $this->assertEquals($this->docopt("usage: prog [options] [-a]\nOptions: -a -b", '-a')->args,
                 array('-a'=>true, '-b'=>false));
         
-        $result = $this->docopt("usage: prog [options] [-a]\n\n-a -b", '-aa');
+        $result = $this->docopt("usage: prog [options] [-a]\nOptions: -a -b", '-aa');
         $this->assertFalse($result->success);
     }
 
-    /**
-     * @group faulty
-     */
     function testDefaultValueForPositionalArguments()
     {
         # disabled right now
@@ -761,6 +707,12 @@ class PythonPortedTest extends \PHPUnit_Framework_TestCase
     #                                      new Option('-o', null, 1),
     #                                      new Option(null, '--verbose')]
 
+    public function testIssue59()
+    {
+        $this->assertEquals($this->docopt("usage: prog --long=<a>", '--long=')->args, array('--long'=>''));
+        $this->assertEquals($this->docopt("usage: prog -l <a>\noptions: -l <a>", array('-l', ''))->args, array('-l'=>''));
+    }
+
     public function testOptionsFirst()
     {
         $this->assertEquals($this->docopt('usage: prog [--opt] [<args>...]',
@@ -777,23 +729,20 @@ class PythonPortedTest extends \PHPUnit_Framework_TestCase
     
     public function testIssue68OptionsShortcutDoesNotIncludeOptionsInUsagePattern()
     {
-        $args = $this->docopt("usage: prog [-ab] [options]\n\n-x\n-y", '-ax');
+        $args = $this->docopt("usage: prog [-ab] [options]\noptions: -x\n -y", '-ax');
         $this->assertTrue($args['-a']);
         $this->assertFalse($args['-b']);
         $this->assertTrue($args['-x']);
         $this->assertFalse($args['-y']);
     }
 
-    /**
-     * @group faulty
-     */
-    public function testIssue85AnyOptionMultipleSubcommands()
+    public function testIssue71DoubleDashIsNotAValidOptionArgument()
     {
-        $this->assertEquals(
-            array('--loglevel' => '5', 'fail' => true, 'good' => false),
-            $this->docopt("usage:\n  fs good [options]\n  fs fail [options]\n\nOptions:\n  --loglevel=<loglevel>\n",
-                      'fail --loglevel 5')->args
-        );
+        $result = $this->docopt("usage: prog [--log=LEVEL] [--] <args>...", "--log -- 1 2");
+        $this->assertFalse($result->success);
+        
+        $result = $this->docopt("usage: prog [-l LEVEL] [--] <args>...\noptions: -l LEVEL", "-l -- 1 2");
+        $this->assertFalse($result->success);
     }
 
     private function docopt($usage, $args='', $extra=array())
@@ -801,5 +750,43 @@ class PythonPortedTest extends \PHPUnit_Framework_TestCase
         $extra = array_merge(array('exit'=>false, 'help'=>false), $extra);
         $handler = new \Docopt\Handler($extra);
         return call_user_func(array($handler, 'handle'), $usage, $args);
+    }
+    
+    public function testParseSection()
+    {
+        $this->assertEquals(\Docopt\parse_section('usage:', 'foo bar fizz buzz'), array());
+        $this->assertEquals(\Docopt\parse_section('usage:', 'usage: prog'), array('usage: prog'));
+        $this->assertEquals(\Docopt\parse_section('usage:', "usage: -x\n -y"), array("usage: -x\n -y"));
+        
+        $usage = <<<EOF
+usage: this
+
+usage:hai
+usage: this that
+
+usage: foo
+       bar
+
+PROGRAM USAGE:
+ foo
+ bar
+usage:
+\ttoo
+\ttar
+Usage: eggs spam
+BAZZ
+usage: pit stop
+EOF;
+
+        $this->assertEquals(\Docopt\parse_section("usage:", $usage), array(
+            "usage: this",
+            "usage:hai",
+            "usage: this that",
+            "usage: foo\n       bar",
+            "PROGRAM USAGE:\n foo\n bar",
+            "usage:\n\ttoo\n\ttar",
+            "Usage: eggs spam",
+            "usage: pit stop",
+        ));
     }
 }

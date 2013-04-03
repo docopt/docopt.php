@@ -9,40 +9,21 @@ efficient.
 
 As a result, unless a bug is present only in the PHP version, pull requests
 are unlikely to be accepted unless they are themselves direct transliterations
-of bugfixes in the Python version.
+of bugfixes in the Python version. 
 
+  New in version 0.6.1:
+  
+    - API has changed slightly. ``Docopt\docopt`` has been renamed to ``Docopt::handle``
+      to fix autoloader support. See issue #3.
 
-Video introduction to **docopt**: `PyCon UK 2012: Create *beautiful*
-command-line interfaces with Python <http://youtu.be/pXhcPJK5cMc>`_
-    
-    New in version 0.6.1:
+    - Compatibility with Python master branch at commit `d5b96f878a <https://github.com/docopt/docopt/commit/d5b96f878abbda51b62f1e28010d2b42b19a27dc>`_
 
-    - Fix issue `#85 <https://github.com/docopt/docopt/issues/85>`_
-      which caused improper handling of ``[options]`` shortcut
-      if it was present several times.
+    - Potentially serious BC break in `issue 102 <https://github.com/docopt/docopt/issues/102>`_
 
-    New in version 0.6.0:
+Please see the `Python version's README <https://github.com/docopt/docopt/blob/master/README.rst>`_ 
+for any new and breaking changes that are not specific to the PHP version.
 
-    - New argument ``options_first``, disallows interspersing options
-      and arguments.  If you supply ``options_first=True`` to
-      ``docopt``, it will interpret all arguments as positional
-      arguments after first positional argument.
-
-    - If option with argument could be repeated, its default value
-      will be interpreted as space-separated list. E.g. with
-      ``[default: ./here ./there]`` will be interpreted as
-      ``['./here', './there']``.
-
-    Breaking changes:
-
-    - Meaning of ``[options]`` shortcut slightly changed. Previously
-      it meant *"any known option"*. Now it means *"any option not in
-      usage-pattern"*.  This avoids the situation when an option is
-      allowed to be repeated unintentionally.
-
-    - ``argv`` is ``None`` by default, not ``sys.argv[1:]``.
-      This allows ``docopt`` to always use the *latest* ``sys.argv``,
-      not ``sys.argv`` during import time.
+-----
 
 Isn't it awesome how ``optparse`` and ``argparse`` generate help
 messages based on your code?!
@@ -79,7 +60,7 @@ and instead can write only the help message--*the way you want it*.
     DOC;
     
     require('path/to/src/docopt.php');
-    $args = Docopt\docopt($doc, array('version'=>'Naval Fate 2.0'));
+    $args = Docopt::handle($doc, array('version'=>'Naval Fate 2.0'));
     foreach ($args as $k=>$v)
         echo $k.': '.json_encode($v).PHP_EOL;
 
@@ -103,7 +84,7 @@ Create a ``composer.json`` file for your project
 
     {
         "require": {
-            "docopt/docopt": ">=0.6.1"
+            "docopt/docopt": ">=0.6.*"
         }
     }
 
@@ -112,10 +93,10 @@ Install using composer::
     php composer.phar install
 
 
-Alternatively, you can just drop `docopt.php` file into your project--it is
+Alternatively, you can just drop ``docopt.php`` file into your project--it is
 self-contained. `Get source on github <http://github.com/docopt/docopt.php>`_.
 
-``docopt.php`` is tested with PHP 5.3
+``docopt.php`` is tested with PHP 5.4 and PHP 5.3.
 
 
 API
@@ -126,20 +107,27 @@ API
     <?php
     require('/path/to/src/docopt.php');
     
-    // short form
-    $args = Docopt\docopt($sdoc);
+    // short form, simple API
+    $args = Docopt::docopt($doc);
 
-    // long form (equivalent to short)
+    // long form, simple API (equivalent to short)
     $params = array(
         'argv'=>array_slice($_SERVER['argv'], 1),
         'help'=>true,
         'version'=>null,
         'optionsFirst'=>false,
     );
-    $args = Docopt\docopt($doc, $params);
+    $args = Docopt::docopt($doc, $params);
+    
+    // long form, full API
+    $handler = new \Docopt\Handler(array(
+        'help'=>true,
+        'optionsFirst'=>false,
+    ));
+    $handler->handle($doc, $argv);
 
 
-``docopt`` takes 1 required and 1 optional argument:
+``Docopt::handle()`` takes 1 required and 1 optional argument:
 
 - ``doc`` is a string that contains a **help message** that will be parsed to
   create the option parser.  The simple rules of how to write such a
@@ -151,12 +139,13 @@ API
     <?php
     $doc = <<<DOC
     Usage: my_program.php [-hso FILE] [--quiet | --verbose] [INPUT ...]
-
-    -h --help    show this
-    -s --sorted  sorted output
-    -o FILE      specify output file [default: ./test.txt]
-    --quiet      print less text
-    --verbose    print more text
+    
+    Options:
+      -h --help    show this
+      -s --sorted  sorted output
+      -o FILE      specify output file [default: ./test.txt]
+      --quiet      print less text
+      --verbose    print more text
 
     DOC;
 
@@ -222,23 +211,25 @@ the return dictionary will be:
 Help message format
 ======================================================================
 
-Help message consists of 2 parts:
+Help message consists of 2 sections:
 
-- Usage pattern, e.g.::
+- Usage section, starting with ``Usage:`` e.g.::
 
     Usage: my_program.php [-hso FILE] [--quiet | --verbose] [INPUT ...]
 
-- Option descriptions, e.g.::
+- Option section, starting with ``Options:`` e.g.::
 
-    -h --help    show this
-    -s --sorted  sorted output
-    -o FILE      specify output file [default: ./test.txt]
-    --quiet      print less text
-    --verbose    print more text
+    Options:
+      -h --help    show this
+      -s --sorted  sorted output
+      -o FILE      specify output file [default: ./test.txt]
+      --quiet      print less text
+      --verbose    print more text
 
 Their format is described below; other text is ignored.
 
-Usage pattern format
+
+Usage section format
 ----------------------------------------------------------------------
 
 **Usage pattern** is a substring of ``doc`` that starts with
@@ -265,7 +256,7 @@ Each pattern can consist of the following elements:
   options, e.g. ``-oiv`` which will be the same as ``-o -i -v``. The
   options can have arguments, e.g.  ``--input=FILE`` or ``-i FILE`` or
   even ``-iFILE``. However it is important that you specify option
-  descriptions if you want for option to have an argument, a default
+  descriptions if you want your option to have an argument, a default
   value, or specify synonymous short/long versions of option (see next
   section on option descriptions).
 - **commands** are words that do *not* follow the described above
@@ -389,6 +380,7 @@ The rules are as follows:
     # will be './here ./there', because it is not repeatable
     --not-repeatable=<arg>      [default: ./here ./there]
 
+
 Examples
 ----------------------------------------------------------------------
 
@@ -396,6 +388,7 @@ We have an extensive list of `examples
 <https://github.com/docopt/docopt/tree/master/examples>`_ which cover
 every aspect of functionality of **docopt**.  Try them out, read the
 source if in doubt.
+
 
 Subparsers, multi-level help and *huge* applications (like git)
 ----------------------------------------------------------------------
