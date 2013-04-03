@@ -1,0 +1,15 @@
+language: php
+
+before_install:
+  - git submodule update --init
+
+php:
+  - "5.4"
+  - "5.3"
+
+branches:
+  only:
+    - master
+    - develop
+
+script: php test/run.php
