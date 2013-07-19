@@ -97,7 +97,7 @@ Create a ``composer.json`` file for your project
 
     {
         "require": {
-            "docopt/docopt": "0.5.0"
+            "docopt/docopt": "0.6.0"
         }
     }
 
