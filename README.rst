@@ -73,7 +73,8 @@ and instead can write only the help message--*the way you want it*.
     DOC;
     
     require('path/to/src/docopt.php');
-    $args = Docopt\docopt($doc, array('version'=>'Naval Fate 2.0'));
+    $handler = new \Docopt\Handler(array('version'=>'Naval Fate 2.0'));
+    $args = $handler->handle($doc);
     foreach ($args as $k=>$v)
         echo $k.': '.json_encode($v).PHP_EOL;
 
@@ -120,8 +121,8 @@ API
     <?php
     require('/path/to/src/docopt.php');
     
-    // short form
-    $args = Docopt\docopt($sdoc);
+    // short form (5.4 or better)
+    $args = (new \Docopt\Handler)->handle($sdoc);
 
     // long form (equivalent to short)
     $params = array(
@@ -130,32 +131,14 @@ API
         'version'=>null,
         'optionsFirst'=>false,
     );
-    $args = Docopt\docopt($doc, $params);
+    $handler = new \Docopt\Handler($params);
+    $args = $handler->handle($doc);
 
 
-``docopt`` takes 1 required and 1 optional argument:
+The constructor for ``Docopt\Handler`` takes one optional argument (the
+defaults are listed in the above example):
 
-- ``doc`` is a string that contains a **help message** that will be parsed to
-  create the option parser.  The simple rules of how to write such a
-  help message are given in next sections.  Here is a quick example of
-  such a string:
-
-.. code:: php
-    
-    <?php
-    $doc = <<<DOC
-    Usage: my_program.php [-hso FILE] [--quiet | --verbose] [INPUT ...]
-
-    -h --help    show this
-    -s --sorted  sorted output
-    -o FILE      specify output file [default: ./test.txt]
-    --quiet      print less text
-    --verbose    print more text
-
-    DOC;
-
-
-- ``params`` is an optional array of additional data to influence
+- ``params`` is an array of additional data to influence
   ``docopt``. The following keys are supported: 
 
   - ``argv`` is an optional argument vector; by default ``docopt`` uses
@@ -189,10 +172,32 @@ API
     compatibility with POSIX, or if you want to dispatch your arguments
     to other programs.
 
-The **return** value is a simple associative array with options, arguments
-and commands as keys, spelled exactly like in your help message.  Long
-versions of options are given priority. For example, if you invoke the
-top example as::
+``Docopt\Handler->handle()`` takes one required argument:
+
+- ``doc`` is a string that contains a **help message** that will be parsed to
+  create the option parser.  The simple rules of how to write such a
+  help message are given in next sections.  Here is a quick example of
+  such a string:
+
+.. code:: php
+    
+    <?php
+    $doc = <<<DOC
+    Usage: my_program.php [-hso FILE] [--quiet | --verbose] [INPUT ...]
+
+    -h --help    show this
+    -s --sorted  sorted output
+    -o FILE      specify output file [default: ./test.txt]
+    --quiet      print less text
+    --verbose    print more text
+
+    DOC;
+
+
+The **return** value of ``handle()`` is a simple associative array with 
+options, arguments and commands as keys, spelled exactly like in your 
+help message. Long versions of options are given priority. For example, 
+if you invoke the top example as::
 
     naval_fate.php ship Guardian move 100 150 --speed=15
 
