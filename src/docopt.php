@@ -501,7 +501,7 @@ class Option extends ChildPattern
         $this->value = $value;
         
         // Python checks "value is False". maybe we should check "$value === false"
-        if (!$value && $argcount)
+        if (!$value && $value !== '0' && $argcount)
             $this->value = null;
     }
     
