@@ -1,8 +1,7 @@
 <?php
-$basePath = __DIR__.'/../';
-$testPath = __DIR__;
-require $basePath.'/src/docopt.php';
-require_once 'PHPUnit/Autoload.php';
+$basePath = __DIR__;
+$testPath = __DIR__.'/test';
+require $basePath.'/vendor/autoload.php';
 
 require $testPath.'/lib/TestCase.php';
 require $testPath.'/lib/LanguageAgnosticTest.php';
