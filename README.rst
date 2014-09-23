@@ -24,8 +24,9 @@ There are also some major backward compatibility breaks. Rather than dwell in 0.
 hell, the PHP port will liberally bump major numbers henceforth when BC breaks regardless
 of the reason.
 
-- The PHP API has changed slightly. ``Docopt\docopt`` has been renamed to
-  ``Docopt::handle`` to fix autoloader support. See issue #3.
+- The PHP API has changed slightly. ``Docopt\docopt()`` has been renamed to
+  ``Docopt::handle()`` to fix autoloader support. See `issue #3
+  <https://github.com/docopt/docopt.php/pull/3>`_.
 
 - Docopt.py also has a significant BC break. Existing users should read the information
   below about Usage and Option sections. See `issue 102
