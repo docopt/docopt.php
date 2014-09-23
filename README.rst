@@ -1,6 +1,8 @@
 ``docopt`` creates *beautiful* command-line interfaces
 ======================================================================
 
+.. image:: https://travis-ci.org/docopt/docopt.php.svg?branch=master
+
 This is a straight PHP transliteration of Vladimir Keleshev's brilliant
 `docopt <https://github.com/docopt/docopt/>`_ Python library. There are a
 few artefacts in the code as a result that may seem inefficient and
