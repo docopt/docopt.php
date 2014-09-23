@@ -745,17 +745,17 @@ class PythonPortedTest extends TestCase
 
     function testCountMultipleFlags()
     {
-        $this->assertEquals($this->docopt('usage: prog [-v]', '-v')->args, ['-v'=>true]);
-        $this->assertEquals($this->docopt('usage: prog [-vv]', '')->args,  ['-v'=>0]);
-        $this->assertEquals($this->docopt('usage: prog [-vv]', '-v')->args,  ['-v'=>1]);
-        $this->assertEquals($this->docopt('usage: prog [-vv]', '-vv')->args,  ['-v'=>2]);
-        $this->assertEquals($this->docopt('usage: prog [-vv]', '-v -v')->args,  ['-v'=>2]);
+        $this->assertEquals($this->docopt('usage: prog [-v]', '-v')->args, array('-v'=>true));
+        $this->assertEquals($this->docopt('usage: prog [-vv]', '')->args, array('-v'=>0));
+        $this->assertEquals($this->docopt('usage: prog [-vv]', '-v')->args, array('-v'=>1));
+        $this->assertEquals($this->docopt('usage: prog [-vv]', '-vv')->args, array('-v'=>2));
+        $this->assertEquals($this->docopt('usage: prog [-vv]', '-v -v')->args, array('-v'=>2));
 
         $this->assertFalse($this->docopt('usage: prog [-vv]', '-vvv')->success);
 
-        $this->assertEquals($this->docopt('usage: prog [-v | -vv | -vvv]', '-vvv')->args, ['-v'=>3]);
-        $this->assertEquals($this->docopt('usage: prog -v...', '-vvvvvv')->args, ['-v'=>6]);
-        $this->assertEquals($this->docopt('usage: prog [--ver --ver]', '--ver --ver')->args, ['--ver'=>2]);
+        $this->assertEquals($this->docopt('usage: prog [-v | -vv | -vvv]', '-vvv')->args, array('-v'=>3));
+        $this->assertEquals($this->docopt('usage: prog -v...', '-vvvvvv')->args, array('-v'=>6));
+        $this->assertEquals($this->docopt('usage: prog [--ver --ver]', '--ver --ver')->args, array('--ver'=>2));
     }
 
     function testOptionsShortcutParameter()
@@ -807,17 +807,17 @@ class PythonPortedTest extends TestCase
         $doc = "Usage: prog [--data=<data>...]\n".
                "Options:\n\t-d --data=<arg>    Input data [default: x]";
         $a = $this->docopt($doc, '')->args;
-        $this->assertEquals($a, ['--data'=>['x']]);
+        $this->assertEquals($a, array('--data'=>array('x')));
 
         $doc = "Usage: prog [--data=<data>...]\n".
                "Options:\n\t-d --data=<arg>    Input data [default: x y]";
         $a = $this->docopt($doc, '')->args;
-        $this->assertEquals($a, ['--data'=>['x', 'y']]);
+        $this->assertEquals($a, array('--data'=>array('x', 'y')));
 
         $doc = "Usage: prog [--data=<data>...]\n".
                "Options:\n\t-d --data=<arg>    Input data [default: x y]";
         $a = $this->docopt($doc, '--data=this')->args;
-        $this->assertEquals($a, ['--data'=>['this']]);
+        $this->assertEquals($a, array('--data'=>array('this')));
 
         /* Doesn't work.
         $doc = "Usage: prog [--data=<data>...]\n".
@@ -937,6 +937,6 @@ EOF;
     public function testIssue126DefaultsNotParsedCorrectlyWhenTabs()
     {
         $section = "Options:\n\t--foo=<arg>  [default: bar]";
-        $this->assertEquals(\Docopt\parse_defaults($section)->getArrayCopy(), [new Option(null, '--foo', 1, 'bar')]);
+        $this->assertEquals(\Docopt\parse_defaults($section)->getArrayCopy(), array(new Option(null, '--foo', 1, 'bar')));
     }
 }
