@@ -3,7 +3,7 @@ namespace Docopt\Test;
 
 use Docopt\Required;
 use Docopt\OneOrMore;
-use Docopt\AnyOptions;
+use Docopt\OptionsShortcut;
 use Docopt\Argument;
 use Docopt\Option;
 use Docopt\Optional;
@@ -180,16 +180,16 @@ class PythonPortedTest extends TestCase
         );
         $this->assertEquals(
             \Docopt\parse_pattern('[options]', $o),
-            new Required(new Optional(new AnyOptions()))
+            new Required(new Optional(new OptionsShortcut()))
         );
         $this->assertEquals(\Docopt\parse_pattern('[options] A', $o),
             new Required(
-            new Optional(new AnyOptions()),
+            new Optional(new OptionsShortcut()),
             new Argument('A'))
         );
         $this->assertEquals(\Docopt\parse_pattern('-v [options]', $o),
                     new Required(new Option('-v', '--verbose'),
-                             new Optional(new AnyOptions()))
+                             new Optional(new OptionsShortcut()))
         );
         $this->assertEquals(\Docopt\parse_pattern('ADD', $o), new Required(new Argument('ADD')));
         $this->assertEquals(\Docopt\parse_pattern('<add>', $o), new Required(new Argument('<add>')));
@@ -502,24 +502,24 @@ class PythonPortedTest extends TestCase
         );
     }
 
-    function testFixPatternEither()
+    function testPatternEither()
     {
         $input = new Option('-a');
         $this->assertEquals(
-            $input->either(), 
+            \Docopt\transform($input), 
             new Either(new Required(new Option('-a')))
         );
         
         $input = new Argument('A');
         $this->assertEquals(
-            $input->either(), 
+            \Docopt\transform($input),
             new Either(new Required(new Argument('A')))
         );
         
         $input = new Required(new Either(new Option('-a'), new Option('-b')),
                         new Option('-c'));
         $this->assertEquals(
-            $input->either(),
+            \Docopt\transform($input),
             new Either(new Required(new Option('-a'), new Option('-c')),
                        new Required(new Option('-b'), new Option('-c')))
         );
@@ -528,14 +528,14 @@ class PythonPortedTest extends TestCase
                           new Either(new Option('-b'),
                           new Option('-c')));
         $this->assertEquals(
-            $input->either(),
+            \Docopt\transform($input),
             new Either(new Required(new Option('-b'), new Option('-a')),
                        new Required(new Option('-c'), new Option('-a')))
         );
         
         $input = new Either(new Option('-x'), new Either(new Option('-y'), new Option('-z')));
         $this->assertEquals(
-            $input->either(),
+            \Docopt\transform($input),
             new Either(new Required(new Option('-x')), 
                new Required(new Option('-y')),
                new Required(new Option('-z')))
@@ -543,7 +543,7 @@ class PythonPortedTest extends TestCase
         
         $input = new OneOrMore(new Argument('N'), new Argument('M'));
         $this->assertEquals(
-            $input->either(),
+            \Docopt\transform($input),
             new Either(new Required(new Argument('N'), new Argument('M'),
                             new Argument('N'), new Argument('M')))
         );
@@ -743,7 +743,22 @@ class PythonPortedTest extends TestCase
                                                                '--aa'=>true));
     }
 
-    function testAnyOptionsParameter()
+    function testCountMultipleFlags()
+    {
+        $this->assertEquals($this->docopt('usage: prog [-v]', '-v')->args, ['-v'=>true]);
+        $this->assertEquals($this->docopt('usage: prog [-vv]', '')->args,  ['-v'=>0]);
+        $this->assertEquals($this->docopt('usage: prog [-vv]', '-v')->args,  ['-v'=>1]);
+        $this->assertEquals($this->docopt('usage: prog [-vv]', '-vv')->args,  ['-v'=>2]);
+        $this->assertEquals($this->docopt('usage: prog [-vv]', '-v -v')->args,  ['-v'=>2]);
+
+        $this->assertFalse($this->docopt('usage: prog [-vv]', '-vvv')->success);
+
+        $this->assertEquals($this->docopt('usage: prog [-v | -vv | -vvv]', '-vvv')->args, ['-v'=>3]);
+        $this->assertEquals($this->docopt('usage: prog -v...', '-vvvvvv')->args, ['-v'=>6]);
+        $this->assertEquals($this->docopt('usage: prog [--ver --ver]', '--ver --ver')->args, ['--ver'=>2]);
+    }
+
+    function testOptionsShortcutParameter()
     {
         $result = $this->docopt('usage: prog [options]', '-foo --bar --spam=eggs');
         $this->assertFalse($result->success);
@@ -777,6 +792,7 @@ class PythonPortedTest extends TestCase
     #        'c1 -o', any_options=true), array('-o'=>true, 'c1'=>true, 'c2'=>false}
 
 
+    // removed in the python version for some reason
     public function testOptionsShortcutDoesNotAddOptionsToPatternSecondTime()
     {
         $this->assertEquals($this->docopt("usage: prog [options] [-a]\nOptions: -a -b", '-a')->args,
@@ -788,16 +804,27 @@ class PythonPortedTest extends TestCase
 
     function testDefaultValueForPositionalArguments()
     {
-        # disabled right now
-        $this->assertEquals($this->docopt("usage: prog [<p>]\n\n<p>  [default: x]", '')->args,
-                array('<p>'=>null));
-        #       {'<p>'=>'x'}
-        $this->assertEquals($this->docopt("usage: prog [<p>]...\n\n<p>  [default: x y]", '')->args,
-                array('<p>'=>array()));
-        #       {'<p>'=>['x', 'y']}
-        $this->assertEquals($this->docopt("usage: prog [<p>]...\n\n<p>  [default: x y]", 'this')->args,
-                array('<p>'=>array('this')));
-        #       {'<p>'=>['this']}
+        $doc = "Usage: prog [--data=<data>...]\n".
+               "Options:\n\t-d --data=<arg>    Input data [default: x]";
+        $a = $this->docopt($doc, '')->args;
+        $this->assertEquals($a, ['--data'=>['x']]);
+
+        $doc = "Usage: prog [--data=<data>...]\n".
+               "Options:\n\t-d --data=<arg>    Input data [default: x y]";
+        $a = $this->docopt($doc, '')->args;
+        $this->assertEquals($a, ['--data'=>['x', 'y']]);
+
+        $doc = "Usage: prog [--data=<data>...]\n".
+               "Options:\n\t-d --data=<arg>    Input data [default: x y]";
+        $a = $this->docopt($doc, '--data=this')->args;
+        $this->assertEquals($a, ['--data'=>['this']]);
+
+        /* Doesn't work.
+        $doc = "Usage: prog [--data=<data>...]\n".
+               "Options:\n\t-d --data=<arg>    Input data [default: \"hello world\"]";
+        $a = $this->docopt($doc, '')->args;
+        $this->assertEquals($a, ['--data'=>['hello world']]);
+        */
     }
     
     #def test_parse_defaults():
@@ -905,5 +932,11 @@ EOF;
             "Usage: eggs spam",
             "usage: pit stop",
         ));
+    }
+
+    public function testIssue126DefaultsNotParsedCorrectlyWhenTabs()
+    {
+        $section = "Options:\n\t--foo=<arg>  [default: bar]";
+        $this->assertEquals(\Docopt\parse_defaults($section)->getArrayCopy(), [new Option(null, '--foo', 1, 'bar')]);
     }
 }

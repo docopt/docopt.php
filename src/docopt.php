@@ -198,16 +198,16 @@ namespace Docopt
                 $uniq = array_unique($this->flat());
             }
 
-            foreach ($this->children as $i=>$c) {
-                if (!$c instanceof ParentPattern) {
-                    if (!in_array($c, $uniq)) {
+            foreach ($this->children as $i=>$child) {
+                if (!$child instanceof BranchPattern) {
+                    if (!in_array($child, $uniq)) {
                         // Not sure if this is a true substitute for 'assert c in uniq'
                         throw new \UnexpectedValueException();
                     }
-                    $this->children[$i] = $uniq[array_search($c, $uniq)];
+                    $this->children[$i] = $uniq[array_search($child, $uniq)];
                 }
                 else {
-                    $c->fixIdentities($uniq);   
+                    $child->fixIdentities($uniq);   
                 }     
             }
         }
@@ -218,25 +218,25 @@ namespace Docopt
         public function fixRepeatingArguments()
         {   
             $either = array();
-            foreach ($this->either()->children as $c) {
-                $either[] = $c->children;
+            foreach (transform($this)->children as $child) {
+                $either[] = $child->children;
             }
             
             foreach ($either as $case) {
                 $counts = array();
-                foreach ($case as $c) {
-                    $ser = serialize($c);
+                foreach ($case as $child) {
+                    $ser = serialize($child);
                     if (!isset($counts[$ser]))
                         $counts[$ser] = array('cnt'=>0, 'items'=>array());
                     
                     $counts[$ser]['cnt']++;
-                    $counts[$ser]['items'][] = $c;
+                    $counts[$ser]['items'][] = $child;
                 }
                 
                 $repeatedCases = array();
-                foreach ($counts as $c) {
-                    if ($c['cnt'] > 1)
-                        $repeatedCases = array_merge($repeatedCases, $c['items']);
+                foreach ($counts as $child) {
+                    if ($child['cnt'] > 1)
+                        $repeatedCases = array_merge($repeatedCases, $child['items']);
                 }
                 
                 foreach ($repeatedCases as $e) {
@@ -252,95 +252,7 @@ namespace Docopt
             }
             
             return $this;
-        }
-        
-        /**
-         * Transform pattern into an equivalent, with only top-level Either.
-         */
-        public function either()
-        {
-            // Currently the pattern will not be equivalent, but more "narrow",
-            // although good enough to reason about list arguments.
-            $ret = array();
-            $groups = array(array($this));
-            while ($groups) {
-                $children = array_pop($groups);
-                $types = array();
-                foreach ($children as $c) {
-                    if (is_object($c)) {
-                        $types[get_class_name($c)] = true;
-                    }
-                }
-                
-                if (isset($types['Either'])) {
-                    $either = null;
-                    foreach ($children as $c) {
-                        if ($c instanceof Either) {
-                            $either = $c;
-                            break;
-                        }
-                    }
-                    
-                    unset($children[array_search($either, $children)]);
-                    foreach ($either->children as $c) {
-                        $groups[] = array_merge(array($c), $children);
-                    }
-                }
-                elseif (isset($types['Required'])) {
-                    $required = null;
-                    foreach ($children as $c) {
-                        if ($c instanceof Required) {
-                            $required = $c;
-                            break;
-                        }
-                    }
-                    unset($children[array_search($required, $children)]);
-                    $groups[] = array_merge($required->children, $children);
-                }
-                elseif (isset($types['Optional'])) {
-                    $optional = null;
-                    foreach ($children as $c) {
-                        if ($c instanceof Optional) {
-                            $optional = $c;
-                            break;
-                        }
-                    }
-                    unset($children[array_search($optional, $children)]);
-                    $groups[] = array_merge($optional->children, $children);
-                }
-                elseif (isset($types['AnyOptions'])) {
-                    $optional = null;
-                    foreach ($children as $c) {
-                        if ($c instanceof AnyOptions) {
-                            $optional = $c;
-                            break;
-                        }
-                    }
-                    unset($children[array_search($optional, $children)]);
-                    $groups[] = array_merge($optional->children, $children);
-                }
-                elseif (isset($types['OneOrMore'])) {
-                    $oneormore = null;
-                    foreach ($children as $c) {
-                        if ($c instanceof OneOrMore) {
-                            $oneormore = $c;
-                            break;
-                        }
-                    }
-                    unset($children[array_search($oneormore, $children)]);
-                    $groups[] = array_merge($oneormore->children, $oneormore->children, $children);
-                }
-                else {
-                    array_unshift($ret, $children);
-                }
-            }
-            
-            $rs = array();
-            foreach ($ret as $e) {
-                $rs[] = new Required($e);
-            }
-            return new Either($rs);
-        }
+        } 
         
         public function name()
         {}
@@ -354,7 +266,62 @@ namespace Docopt
         }
     }
 
-    class ChildPattern extends Pattern
+    /**
+     * Expand pattern into an (almost) equivalent one, but with single Either.
+     * 
+     * Example: ((-a | -b) (-c | -d)) => (-a -c | -a -d | -b -c | -b -d)
+     * Quirks: [-a] => (-a), (-a...) => (-a -a)
+     */
+    function transform($pattern)
+    {
+        $result = array();
+        $groups = array(array($pattern));
+        $parents = array('Required', 'Optional', 'OptionsShortcut', 'Either', 'OneOrMore');
+
+        while ($groups) {
+            $children = array_shift($groups);
+            $types = array();
+            foreach ($children as $c) {
+                if (is_object($c)) {
+                    $types[get_class_name($c)] = true;
+                }
+            }
+
+            if (array_intersect(array_keys($types), $parents)) {
+                $child = null;
+                foreach ($children as $currentChild) {
+                    if (in_array(get_class_name($currentChild), $parents)) {
+                        $child = $currentChild;
+                        break;
+                    }
+                }
+                unset($children[array_search($child, $children)]);
+                $childClass = get_class_name($child);
+                if ($childClass == 'Either') {
+                    foreach ($child->children as $c) {
+                        $groups[] = array_merge(array($c), $children);
+                    }
+                }
+                elseif ($childClass == 'OneOrMore') {
+                    $groups[] = array_merge($child->children, $child->children, $children);
+                }
+                else {
+                    $groups[] = array_merge($child->children, $children);
+                }
+            }
+            else {
+                $result[] = $children;
+            }
+        }
+
+        $rs = array();
+        foreach ($result as $e) {
+            $rs[] = new Required($e);
+        }
+        return new Either($rs);
+    }
+
+    class LeafPattern extends Pattern
     {
         public function flat($types=array())
         {
@@ -404,7 +371,7 @@ namespace Docopt
         }
     }
 
-    class ParentPattern extends Pattern
+    class BranchPattern extends Pattern
     {
         public $children = array();
         
@@ -415,8 +382,8 @@ namespace Docopt
             elseif ($children instanceof Pattern)
                 $children = func_get_args();
             
-            foreach ($children as $c) {
-                $this->children[] = $c;
+            foreach ($children as $child) {
+                $this->children[] = $child;
             }
         }
         
@@ -445,9 +412,9 @@ namespace Docopt
         }
     }
 
-    class Argument extends ChildPattern
+    class Argument extends LeafPattern
     {
-        /* {{{ this stuff is against childpattern in the python version but it interferes with name() */
+        /* {{{ this stuff is against LeafPattern in the python version but it interferes with name() */
         public $name;
         public $value;
         
@@ -460,9 +427,9 @@ namespace Docopt
         
         public function singleMatch($left)
         {
-            foreach ($left as $n=>$p) {
-                if ($p instanceof Argument) {
-                    return array($n, new Argument($this->name, $p->value));
+            foreach ($left as $n=>$pattern) {
+                if ($pattern instanceof Argument) {
+                    return array($n, new Argument($this->name, $pattern->value));
                 }
             }
             
@@ -474,7 +441,7 @@ namespace Docopt
             $name = null;
             $value = null;
 
-            if (preg_match_all('@(<\S*?>)@', $source, $matches)) {
+            if (preg_match_all('@(<\S*?'.'>)@', $source, $matches)) {
                 $name = $matches[0][0];
             }
             if (preg_match_all('@\[default: (.*)\]@i', $source, $matches)) {
@@ -503,9 +470,9 @@ namespace Docopt
         
         function singleMatch($left)
         {
-            foreach ($left as $n=>$p) {
-                if ($p instanceof Argument) {
-                    if ($p->value == $this->name)
+            foreach ($left as $n=>$pattern) {
+                if ($pattern instanceof Argument) {
+                    if ($pattern->value == $this->name)
                         return array($n, new Command($this->name, true));
                     else
                         break;
@@ -515,7 +482,7 @@ namespace Docopt
         }
     }
 
-    class Option extends ChildPattern
+    class Option extends LeafPattern
     {
         public $short;
         public $long;
@@ -568,9 +535,9 @@ namespace Docopt
         
         public function singleMatch($left)
         {
-            foreach ($left as $n=>$p) {
-                if ($this->name == $p->name) {
-                    return array($n, $p);
+            foreach ($left as $n=>$pattern) {
+                if ($this->name == $pattern->name) {
+                    return array($n, $pattern);
                 }
             }
             return array(null, null);
@@ -587,7 +554,7 @@ namespace Docopt
         }
     }
 
-    class Required extends ParentPattern
+    class Required extends BranchPattern
     {
         public function match($left, $collected=null)
         {
@@ -597,8 +564,8 @@ namespace Docopt
             $l = $left;
             $c = $collected;
 
-            foreach ($this->children as $p) {
-                list ($matched, $l, $c) = $p->match($l, $c);
+            foreach ($this->children as $pattern) {
+                list ($matched, $l, $c) = $pattern->match($l, $c);
                 if (!$matched)
                     return array(false, $left, $collected);
             }
@@ -607,15 +574,15 @@ namespace Docopt
         }
     }
 
-    class Optional extends ParentPattern
+    class Optional extends BranchPattern
     {
         public function match($left, $collected=null)
         {
             if (!$collected)
                 $collected = array();
             
-            foreach ($this->children as $p) {
-                list($m, $left, $collected) = $p->match($left, $collected);
+            foreach ($this->children as $pattern) {
+                list($m, $left, $collected) = $pattern->match($left, $collected);
             }
             
             return array(true, $left, $collected);
@@ -625,11 +592,11 @@ namespace Docopt
     /**
      * Marker/placeholder for [options] shortcut.
      */
-    class AnyOptions extends Optional
+    class OptionsShortcut extends Optional
     {
     }
 
-    class OneOrMore extends ParentPattern
+    class OneOrMore extends BranchPattern
     {
         public function match($left, $collected=null)
         {
@@ -662,7 +629,7 @@ namespace Docopt
         }
     }
 
-    class Either extends ParentPattern
+    class Either extends BranchPattern
     {
         public function match($left, $collected=null)
         {
@@ -670,8 +637,8 @@ namespace Docopt
                 $collected = array();
 
             $outcomes = array();
-            foreach ($this->children as $p) {
-                list ($matched, $dump1, $dump2) = $outcome = $p->match($left, $collected);
+            foreach ($this->children as $pattern) {
+                list ($matched, $dump1, $dump2) = $outcome = $pattern->match($left, $collected);
                 if ($matched)
                     $outcomes[] = $outcome;
             }
@@ -945,7 +912,7 @@ namespace Docopt
         }
         elseif ($token == 'options') {
             $tokens->move();
-            return array(new AnyOptions);
+            return array(new OptionsShortcut);
         }
         elseif (strpos($token, '--') === 0 && $token != '--') {
             return parse_long($tokens, $options);
@@ -1002,7 +969,7 @@ namespace Docopt
         foreach (parse_section('options:', $doc) as $s) {
             # FIXME corner case "bla: options: --foo"
             list (, $s) = explode(':', $s, 2);
-            $splitTmp = array_slice(preg_split("@\n *(-\S+?)@", "\n".$s, null, PREG_SPLIT_DELIM_CAPTURE), 1);
+            $splitTmp = array_slice(preg_split("@\n[ \t]*(-\S+?)@", "\n".$s, null, PREG_SPLIT_DELIM_CAPTURE), 1);
             $split = array();
             for ($cnt = count($splitTmp), $i=0; $i < $cnt; $i+=2) {
                 $split[] = $splitTmp[$i] . (isset($splitTmp[$i+1]) ? $splitTmp[$i+1] : '');
@@ -1102,9 +1069,9 @@ namespace Docopt
                 $argv = parse_argv(new Tokens($argv), $options, $this->optionsFirst);
                 
                 $patternOptions = $pattern->flat('Option');
-                foreach ($pattern->flat('AnyOptions') as $ao) {
+                foreach ($pattern->flat('OptionsShortcut') as $optionsShortcut) {
                     $docOptions = parse_defaults($doc);
-                    $ao->children = array_diff((array)$docOptions, $patternOptions);
+                    $optionsShortcut->children = array_diff((array)$docOptions, $patternOptions);
                 }
 
                 extras($this->help, $this->version, $argv, $doc);

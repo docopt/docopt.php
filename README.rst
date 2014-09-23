@@ -11,20 +11,29 @@ As a result, unless a bug is present only in the PHP version, pull requests
 are unlikely to be accepted unless they are themselves direct transliterations
 of bugfixes in the Python version. 
 
-  New in version 0.7.0:
-  
-    - API has changed slightly. ``Docopt\docopt`` has been renamed to ``Docopt::handle``
-      to fix autoloader support. See issue #3.
+**This port has been marked version 1.0.0 RC1**. It is based on the Python version at
+commit `1937a1c9041e0f580d2890d38bb71c0a0623847f
+<https://github.com/docopt/docopt/commit/d5b96f878abbda51b62f1e28010d2b42b19a27dc>`_
+(labelled **0.6.1**).
 
-    - Compatibility with Python master branch at commit `d5b96f878a 
-      <https://github.com/docopt/docopt/commit/d5b96f878abbda51b62f1e28010d2b42b19a27dc>`_
+It has been quite stable for a long time and has barely been changed.  The Python version
+receives only occasional bugfixes and keeping the version numbers pinned has been more
+trouble than it has been worth.
 
-    - Significant BC break. Existing users should read the information below about Usage and
-      Option sections. See `issue 102 <https://github.com/docopt/docopt/issues/102>`_ for more
-      info.
+There are also some major backward compatibility breaks. Rather than dwell in 0.x semver
+hell, the PHP port will liberally bump major numbers henceforth when BC breaks regardless
+of the reason.
+
+- The PHP API has changed slightly. ``Docopt\docopt`` has been renamed to
+  ``Docopt::handle`` to fix autoloader support. See issue #3.
+
+- Docopt.py also has a significant BC break. Existing users should read the information
+  below about Usage and Option sections. See `issue 102
+  <https://github.com/docopt/docopt/issues/102>`_ for more info.
+
 
 Please see the `Python version's README <https://github.com/docopt/docopt/blob/master/README.rst>`_ 
-for any new and breaking changes that are not specific to the PHP version.
+for details of any new and breaking changes that are not specific to the PHP version.
 
 -----
 
@@ -100,6 +109,21 @@ Alternatively, you can just drop ``docopt.php`` file into your project--it is
 self-contained. `Get source on github <http://github.com/docopt/docopt.php>`_.
 
 ``docopt.php`` is tested with PHP 5.4 and PHP 5.3.
+
+
+Testing
+======================================================================
+
+Configure your repo for running tests::
+
+    ./dev-setup
+
+You can run unit tests with the following command::
+
+    php test.php
+
+This will run the Python language agnostic tests as well as the PHP
+docopt tests.
 
 
 API
@@ -306,10 +330,10 @@ Use the following constructs to specify patterns:
 - **[options]** (case sensitive) shortcut for any options.  You can
   use it if you want to specify that the usage pattern could be
   provided with any options defined below in the option-descriptions
-  and do not want to enumerate them all in usage-pattern.  -
+  and do not want to enumerate them all in usage-pattern.
   "``[--]``". Double dash "``--``" is used by convention to separate
   positional arguments that can be mistaken for options. In order to
-  support this convention add "``[--]``" to you usage patterns.  -
+  support this convention add "``[--]``" to you usage patterns.
   "``[-]``". Single dash "``-``" is used by convention to signify that
   ``stdin`` is used instead of a file. To support this add "``[-]``"
   to you usage patterns. "``-``" act as a normal command.
@@ -349,7 +373,7 @@ It is necessary to list option descriptions in order to specify:
 The rules are as follows:
 
 - Every line in the options section body that starts with one or more
-  horizontal whitespace characters, followed by ``-`` or ``--``is treated
+  horizontal whitespace characters, followed by ``-`` or ``--`` is treated
   as an option description, e.g.::
 
     Options:
