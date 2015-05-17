@@ -13,9 +13,9 @@ As a result, unless a bug is present only in the PHP version, pull requests
 are unlikely to be accepted unless they are themselves direct transliterations
 of bugfixes in the Python version. 
 
-**This port has been marked version 1.0.0 RC1**. It is based on the Python version at
-commit `1937a1c9041e0f580d2890d38bb71c0a0623847f
-<https://github.com/docopt/docopt/commit/d5b96f878abbda51b62f1e28010d2b42b19a27dc>`_
+**This port has been marked version 1.0.0**. It is based on the Python version at
+commit `3e0b80a32c8478c076171e0cffcf754141a9950d
+<https://github.com/docopt/docopt/commit/3e0b80a32c8478c076171e0cffcf754141a9950d>`_
 (labelled **0.6.1**).
 
 It has been quite stable for a long time and has barely been changed.  The Python version
@@ -99,7 +99,7 @@ Create a ``composer.json`` file for your project
 
     {
         "require": {
-            "docopt/docopt": "1.0.0-rc1"
+            "docopt/docopt": "1.0.0"
         }
     }
 
