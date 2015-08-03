@@ -3,9 +3,12 @@ $basePath = __DIR__;
 $testPath = __DIR__.'/test';
 require $basePath.'/vendor/autoload.php';
 
+require $basePath.'/src/PHPUnit/TestCase.php';
+
 require $testPath.'/lib/TestCase.php';
 require $testPath.'/lib/LanguageAgnosticTest.php';
 require $testPath.'/lib/PythonPortedTest.php';
+require $testPath.'/lib/PHPUnitTestCaseTest.php';
 
 $options = array(
     'filter'=>null,
@@ -21,6 +24,7 @@ if (!file_exists($pyTestFile)) {
 }
 
 $suite = new PHPUnit_Framework_TestSuite();
+$suite->addTest(new PHPUnit_Framework_TestSuite('Docopt\Test\PHPUnitTestCaseTest'));
 $suite->addTest(new PHPUnit_Framework_TestSuite('Docopt\Test\PythonPortedTest'));
 $suite->addTest(Docopt\Test\LanguageAgnosticTest::createSuite($pyTestFile));
 
