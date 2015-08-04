@@ -1,5 +1,5 @@
 <?php
-namespace Docopt\PHPUnit;
+namespace Docopt\Extras\PHPUnit;
 
 class TestCase extends \PHPUnit_Framework_TestCase
 {

@@ -1,5 +1,5 @@
 <?php
-namespace Docopt\Testing;
+namespace Docopt\Extras\PHPUnit;
 
 class HeredocExtractor
 {

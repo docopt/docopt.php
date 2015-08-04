@@ -8,6 +8,9 @@ class PHPUnitTestCaseTest extends TestCase
      */
     function testTest($class, $expects)
     {
+        // you copy the exact way that phpunit tests itself, and what do you
+        // get? dodgy error messages.
+
         $test   = new $class;
         $result = $test->run();
 
@@ -32,7 +35,7 @@ class PHPUnitTestCaseTest extends TestCase
     }
 }
 
-class PHPUnitAssertWordsValid extends \Docopt\PHPUnit\TestCase
+class PHPUnitAssertWordsValid extends \Docopt\Extras\PHPUnit\TestCase
 {
     static function expects() { return ['errors'=>0, 'failures'=>0]; }
 
@@ -44,7 +47,7 @@ class PHPUnitAssertWordsValid extends \Docopt\PHPUnit\TestCase
     }
 }
 
-class PHPUnitAssertWordsInvalid extends \Docopt\PHPUnit\TestCase
+class PHPUnitAssertWordsInvalid extends \Docopt\Extras\PHPUnit\TestCase
 {
     static function expects()
     {
@@ -58,7 +61,7 @@ class PHPUnitAssertWordsInvalid extends \Docopt\PHPUnit\TestCase
     }
 }
 
-class PHPUnitAssertWordsMissing extends \Docopt\PHPUnit\TestCase
+class PHPUnitAssertWordsMissing extends \Docopt\Extras\PHPUnit\TestCase
 {
     static function expects() { return ['errors'=>0, 'failures'=>1, 'message'=>"Docopt failed with status 1"]; }
 
