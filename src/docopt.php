@@ -1035,6 +1035,7 @@ namespace Docopt
     class Handler
     {
         public $exit = true;
+        public $exitFullUsage = false;
         public $help = true;
         public $optionsFirst = false;
         public $version;
@@ -1059,8 +1060,8 @@ namespace Docopt
                 $usage = $usageSections[0];
                 
                 // temp fix until python port provides solution
-                ExitException::$usage = $usage;
-                
+                ExitException::$usage = !$this->exitFullUsage ? $usage : $doc;
+
                 $options = parse_defaults($doc);
                 
                 $formalUse = formal_usage($usage);

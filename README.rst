@@ -13,9 +13,9 @@ As a result, unless a bug is present only in the PHP version, pull requests
 are unlikely to be accepted unless they are themselves direct transliterations
 of bugfixes in the Python version. 
 
-**This port has been marked version 1.0.0**. It is based on the Python version at
-commit `3e0b80a32c8478c076171e0cffcf754141a9950d
-<https://github.com/docopt/docopt/commit/3e0b80a32c8478c076171e0cffcf754141a9950d>`_
+**This port has been marked version 1.0**. It is based on the Python version at
+commit `463d780a698cbacb1cf5590ae849b8f890baf25d
+<https://github.com/docopt/docopt/commit/463d780a698cbacb1cf5590ae849b8f890baf25d>`_
 (labelled **0.6.1**).
 
 It has been quite stable for a long time and has barely been changed.  The Python version
@@ -56,7 +56,7 @@ and instead can write only the help message--*the way you want it*.
     <?php
     $doc = <<<DOC
     Naval Fate.
-
+   
     Usage:
       naval_fate.php ship new <name>...
       naval_fate.php ship <name> move <x> <y> [--speed=<kn>]
@@ -64,14 +64,14 @@ and instead can write only the help message--*the way you want it*.
       naval_fate.php mine (set|remove) <x> <y> [--moored | --drifting]
       naval_fate.php (-h | --help)
       naval_fate.php --version
-
+   
     Options:
       -h --help     Show this screen.
       --version     Show version.
       --speed=<kn>  Speed in knots [default: 10].
       --moored      Moored (anchored) mine.
       --drifting    Drifting mine.
-
+   
     DOC;
     
     require('path/to/src/docopt.php');
@@ -92,21 +92,9 @@ information in it to make a parser*.
 Installation
 ======================================================================
 
-``docopt.php`` is available on `Packagist <http://packagist.org/packages/docopt/docopt>`_. 
-Create a ``composer.json`` file for your project
+Install ``docopt.php`` using `Composer <http://getcomposer.org>`_::
 
-.. code-block:: javascript
-
-    {
-        "require": {
-            "docopt/docopt": "1.0.0"
-        }
-    }
-
-Install using composer::
-    
-    php composer.phar install
-
+    composer require docopt/docopt
 
 Alternatively, you can just drop ``docopt.php`` file into your project--it is
 self-contained. `Get source on github <http://github.com/docopt/docopt.php>`_.

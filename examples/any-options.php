@@ -1,8 +1,7 @@
 <?php
+require __DIR__.'/../src/docopt.php';
 
-require(__DIR__.'/../src/docopt.php');
-
-$doc = "
+$doc = <<<'DOCOPT'
 Example of program which uses [options] shortcut in pattern.
 
 Usage:
@@ -16,8 +15,8 @@ Options:
   --apply                  apply changes to database
   -q                       operate in quiet mode
 
-";
+DOCOPT;
 
-$result = Docopt\docopt($doc, array('version'=>'1.0.0rc2'));
+$result = Docopt::handle($doc, array('version'=>'1.0.0rc2'));
 foreach ($result as $k=>$v)
     echo $k.': '.json_encode($v).PHP_EOL;

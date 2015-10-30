@@ -1,8 +1,7 @@
 <?php
+require __DIR__.'/../src/docopt.php';
 
-require(__DIR__.'/../src/docopt.php');
-
-$doc = "
+$doc = <<<'DOCOPT'
 Process FILE and optionally apply correction to either left-hand side or
 right-hand side.
 
@@ -21,8 +20,8 @@ Options:
   --left   use left-hand side
   --right  use right-hand side
 
-";
+DOCOPT;
 
-$result = Docopt\docopt($doc, array('version'=>'1.0.0rc2'));
+$result = Docopt::handle($doc, array('version'=>'1.0.0rc2'));
 foreach ($result as $k=>$v)
     echo $k.': '.json_encode($v).PHP_EOL;
