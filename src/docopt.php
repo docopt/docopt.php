@@ -489,17 +489,18 @@ namespace Docopt
         
         public function __construct($short=null, $long=null, $argcount=0, $value=false)
         {
-            if ($argcount != 0 && $argcount != 1)
+            if ($argcount != 0 && $argcount != 1) {
                 throw new \InvalidArgumentException();
+            }
             
             $this->short = $short;
             $this->long = $long;
             $this->argcount = $argcount;
             $this->value = $value;
             
-            // Python checks "value is False". maybe we should check "$value === false"
-            if (!$value && $argcount)
+            if ($value === false && $argcount) {
                 $this->value = null;
+            }
         }
         
         public static function parse($optionDescription)

@@ -5,8 +5,9 @@ class LanguageAgnosticTest implements \PHPUnit_Framework_Test, \PHPUnit_Framewor
 {
 	public static function createSuite($testFile)
 	{
-		if (!file_exists($testFile))
+		if (!file_exists($testFile)) {
 			throw new \InvalidArgumentException("Test file $testFile does not exist");
+        }
 		
 		$suite = new \PHPUnit_Framework_TestSuite;
 		
@@ -37,14 +38,15 @@ class LanguageAgnosticTest implements \PHPUnit_Framework_Test, \PHPUnit_Framewor
 				$argv = isset($argx[1]) ? $argx[1] : "";
 				
 				$tName = $name ? ($name.$nIdx) : 'unnamed'.$idx;
-				$suite->addTest(new static($tName, $doc, $prog, $argv, $expect));
+                $test = new static($tName, $doc, $prog, $argv, $expect);
+				$suite->addTest($test);
 				$idx++;
 			}
 		}
 		
 		return $suite;
 	}
-	
+
 	public function __construct($name, $doc, $prog, $argv, $expect)
 	{
 		$this->doc = $doc;
@@ -52,8 +54,9 @@ class LanguageAgnosticTest implements \PHPUnit_Framework_Test, \PHPUnit_Framewor
 		$this->prog = $prog;
 		$this->argv = $argv;
 		
-		if ($expect == "user-error")
+		if ($expect == "user-error") {
 			$expect = array('user-error');
+        }
 		
 		$this->expect = $expect;
 	}

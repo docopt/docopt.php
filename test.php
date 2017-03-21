@@ -23,6 +23,7 @@ if (!file_exists($pyTestFile)) {
 $suite = new PHPUnit_Framework_TestSuite();
 $suite->addTest(new PHPUnit_Framework_TestSuite('Docopt\Test\PythonPortedTest'));
 $suite->addTest(Docopt\Test\LanguageAgnosticTest::createSuite($pyTestFile));
+$suite->addTest(Docopt\Test\LanguageAgnosticTest::createSuite("$basePath/test/extra.docopt"));
 
 $runner = new PHPUnit_TextUI_TestRunner();
 $runner->doRun($suite, array(
