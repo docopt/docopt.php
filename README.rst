@@ -14,9 +14,9 @@ are unlikely to be accepted unless they are themselves direct transliterations
 of bugfixes in the Python version. 
 
 **This port has been marked version 1.0**. It is based on the Python version at
-commit `463d780a698cbacb1cf5590ae849b8f890baf25d
-<https://github.com/docopt/docopt/commit/463d780a698cbacb1cf5590ae849b8f890baf25d>`_
-(labelled **0.6.1**).
+commit `a093f938b7f26564434f3c15a1dcc39e017ad638
+<https://github.com/docopt/docopt/commit/a093f938b7f26564434f3c15a1dcc39e017ad638>`_
+(labelled **0.6.2**).
 
 It has been quite stable for a long time and has barely been changed.  The Python version
 receives only occasional bugfixes and keeping the version numbers pinned has been more
