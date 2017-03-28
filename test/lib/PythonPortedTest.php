@@ -14,9 +14,9 @@ use Docopt\Command;
 class PythonPortedTest extends TestCase
 {
     /**
-     * The arguments from the docopt test file are the other way around.
+     * The arguments from the python docopt test file are the other way around.
      */
-    public static function assertEquals($expected, $actual, $message = '', $delta = 0, $maxDepth = 10, $canonicalize = false, $ignoreCase = false)
+    public static function assertEquals($expected, $actual, $message = '', $delta = 0.0, $maxDepth = 10, $canonicalize = false, $ignoreCase = false)
     {
         $args = func_get_args();
         list($args[1], $args[0]) = array($args[0], $args[1]);

@@ -127,10 +127,10 @@ API
     
     // short form, simple API
     $args = Docopt::handle($doc);
-
+   
     // short form (5.4 or better)
     $args = (new \Docopt\Handler)->handle($sdoc);
-
+   
     // long form, simple API (equivalent to short)
     $params = array(
         'argv'=>array_slice($_SERVER['argv'], 1),
@@ -167,7 +167,7 @@ API
       -o FILE      specify output file [default: ./test.txt]
       --quiet      print less text
       --verbose    print more text
-
+   
     DOC;
 
 
@@ -217,13 +217,13 @@ API
     <?php
     $doc = <<<DOC
     Usage: my_program.php [-hso FILE] [--quiet | --verbose] [INPUT ...]
-
+   
     -h --help    show this
     -s --sorted  sorted output
     -o FILE      specify output file [default: ./test.txt]
     --quiet      print less text
     --verbose    print more text
-
+   
     DOC;
 
 

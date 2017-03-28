@@ -26,7 +26,12 @@ class LanguageAgnosticTest implements \PHPUnit_Framework_Test, \PHPUnit_Framewor
 			$name = '';
 			$nIdx = 1;
 			
-			list ($doc, $body) = explode('"""', $fixture, 2);
+			$parts = explode('"""', $fixture, 2);
+            if (!isset($parts[1])) {
+                throw new \Exception("Missing string close");
+            }
+            list ($doc, $body) = $parts;
+
 			$cases = array();
 			foreach (array_slice(explode('$', $body), 1) as $case) {
 				$case = trim($case);
@@ -38,7 +43,7 @@ class LanguageAgnosticTest implements \PHPUnit_Framework_Test, \PHPUnit_Framewor
 				$argv = isset($argx[1]) ? $argx[1] : "";
 				
 				$tName = $name ? ($name.$nIdx) : 'unnamed'.$idx;
-                $test = new static($tName, $doc, $prog, $argv, $expect);
+                $test = new self($tName, $doc, $prog, $argv, $expect);
 				$suite->addTest($test);
 				$idx++;
 			}
@@ -46,6 +51,21 @@ class LanguageAgnosticTest implements \PHPUnit_Framework_Test, \PHPUnit_Framewor
 		
 		return $suite;
 	}
+
+    /** @var string */
+    private $name;
+
+    /** @var string */
+    private $doc;
+
+    /** @var string */
+    private $prog;
+
+    /** @var string[] */
+    private $argv;
+
+    /** @var string[]|string */
+    private $expect;
 
 	public function __construct($name, $doc, $prog, $argv, $expect)
 	{
@@ -63,8 +83,9 @@ class LanguageAgnosticTest implements \PHPUnit_Framework_Test, \PHPUnit_Framewor
 	
 	public function run(\PHPUnit_Framework_TestResult $result=null)
     {
-        if (!$result)
+        if (!$result) {
             $result = new \PHPUnit_Framework_TestResult();
+        }
         
         $opt = null;
 		
@@ -82,11 +103,9 @@ class LanguageAgnosticTest implements \PHPUnit_Framework_Test, \PHPUnit_Framewor
 		if ($opt) {
 		    if (!$opt->success) {
 		        $found = array('user-error');
-		    }
-		    elseif (empty($opt->args)) {
+		    } elseif (empty($opt->args)) {
 		        $found = array();
-		    }
-		    else {
+		    } else {
 		        $found = $opt->args;
 		    }
 		}
