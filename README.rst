@@ -11,14 +11,14 @@ efficient.
 
 As a result, unless a bug is present only in the PHP version, pull requests
 are unlikely to be accepted unless they are themselves direct transliterations
-of bugfixes in the Python version. 
+of bugfixes in the Python version.
 
 **This port has been marked version 1.0**. It is based on the Python version at
 commit `a093f938b7f26564434f3c15a1dcc39e017ad638
 <https://github.com/docopt/docopt/commit/a093f938b7f26564434f3c15a1dcc39e017ad638>`_
 (labelled **0.6.2**).
 
-It has been quite stable for a long time and has barely been changed.  The Python version
+It has been quite stable for a long time and has barely been changed. The Python version
 receives only occasional bugfixes and keeping the version numbers pinned has been more
 trouble than it has been worth.
 
@@ -35,7 +35,7 @@ of the reason.
   <https://github.com/docopt/docopt/issues/102>`_ for more info.
 
 
-Please see the `Python version's README <https://github.com/docopt/docopt/blob/master/README.rst>`_ 
+Please see the `Python version's README <https://github.com/docopt/docopt/blob/master/README.rst>`_
 for details of any new and breaking changes that are not specific to the PHP version.
 
 -----
@@ -43,7 +43,7 @@ for details of any new and breaking changes that are not specific to the PHP ver
 Isn't it awesome how ``optparse`` and ``argparse`` generate help
 messages based on your code?!
 
-*Hell no!*  You know what's awesome?  It's when the option parser *is*
+*Hell no!* You know what's awesome? It's when the option parser *is*
 generated based on the beautiful help message that you write yourself!
 This way you don't need to write this stupid repeatable parser-code,
 and instead can write only the help message--*the way you want it*.
@@ -56,7 +56,7 @@ and instead can write only the help message--*the way you want it*.
     <?php
     $doc = <<<DOC
     Naval Fate.
-   
+
     Usage:
       naval_fate.php ship new <name>...
       naval_fate.php ship <name> move <x> <y> [--speed=<kn>]
@@ -64,24 +64,25 @@ and instead can write only the help message--*the way you want it*.
       naval_fate.php mine (set|remove) <x> <y> [--moored | --drifting]
       naval_fate.php (-h | --help)
       naval_fate.php --version
-   
+
     Options:
       -h --help     Show this screen.
       --version     Show version.
       --speed=<kn>  Speed in knots [default: 10].
       --moored      Moored (anchored) mine.
       --drifting    Drifting mine.
-   
+
     DOC;
-    
+
     require('path/to/src/docopt.php');
     $args = Docopt::handle($doc, array('version'=>'Naval Fate 2.0'));
-    foreach ($args as $k=>$v)
-        echo $k.': '.json_encode($v).PHP_EOL;
+    foreach ($args as $k => $v) {
+        echo $k . ': ' . json_encode($v) . PHP_EOL;
+    }
 
 
 Beat that! The option parser is generated based on the docstring above
-that is passed to ``docopt`` function.  ``docopt`` parses the usage
+that is passed to ``docopt`` function. ``docopt`` parses the usage
 pattern (``"Usage: ..."``) and option descriptions (lines starting
 with dash "``-``") and ensures that the program invocation matches the
 usage pattern; it parses options, arguments and commands based on
@@ -124,7 +125,7 @@ API
 
     <?php
     require('/path/to/src/docopt.php');
-    
+
     // short form, simple API
     $args = Docopt::handle($doc);
    
@@ -133,17 +134,17 @@ API
    
     // long form, simple API (equivalent to short)
     $params = array(
-        'argv'=>array_slice($_SERVER['argv'], 1),
-        'help'=>true,
-        'version'=>null,
-        'optionsFirst'=>false,
+        'argv' => array_slice($_SERVER['argv'], 1),
+        'help' => true,
+        'version' => null,
+        'optionsFirst' => false,
     );
     $args = Docopt::handle($doc, $params);
-    
+
     // long form, full API
     $handler = new \Docopt\Handler(array(
-        'help'=>true,
-        'optionsFirst'=>false,
+        'help' => true,
+        'optionsFirst' => false,
     ));
     $handler->handle($doc, $argv);
 
@@ -151,16 +152,16 @@ API
 ``Docopt::handle()`` takes 1 required and 1 optional argument:
 
 - ``doc`` is a string that contains a **help message** that will be parsed to
-  create the option parser.  The simple rules of how to write such a
-  help message are given in next sections.  Here is a quick example of
+  create the option parser. The simple rules of how to write such a
+  help message are given in next sections. Here is a quick example of
   such a string:
 
 .. code:: php
-    
+
     <?php
     $doc = <<<DOC
     Usage: my_program.php [-hso FILE] [--quiet | --verbose] [INPUT ...]
-    
+
     Options:
       -h --help    show this
       -s --sorted  sorted output
@@ -172,7 +173,7 @@ API
 
 
 - ``params`` is an optional array of additional data to influence
-  ``docopt``. The following keys are supported: 
+  ``docopt``. The following keys are supported:
 
   - ``argv`` is an optional argument vector; by default ``docopt`` uses
     the argument vector passed to your program (``$_SERVER['argv']``).
@@ -190,7 +191,7 @@ API
     specifies the version of your program. If supplied, then, (assuming
     ``--version`` option is mentioned in usage pattern) when parser
     encounters the ``--version`` option, it will print the supplied
-    version and terminate.  ``version`` could be any printable object,
+    version and terminate. ``version`` could be any printable object,
     but most likely a string, e.g. ``"2.1.0rc1"``.
 
     Note, when ``docopt`` is set to automatically handle ``-h``,
@@ -198,22 +199,22 @@ API
     them in usage pattern for this to work. Also, for your users to
     know about them.
 
-  - ``optionsFirst``, by default ``false``.  If set to ``true`` will
-    disallow mixing options and positional argument.  I.e. after first
+  - ``optionsFirst``, by default ``false``. If set to ``true`` will
+    disallow mixing options and positional argument. I.e. after first
     positional argument, all arguments will be interpreted as positional
-    even if the look like options.  This can be used for strict
+    even if the look like options. This can be used for strict
     compatibility with POSIX, or if you want to dispatch your arguments
     to other programs.
 
 ``Docopt\Handler->handle()`` takes one required argument:
 
 - ``doc`` is a string that contains a **help message** that will be parsed to
-  create the option parser.  The simple rules of how to write such a
-  help message are given in next sections.  Here is a quick example of
+  create the option parser. The simple rules of how to write such a
+  help message are given in next sections. Here is a quick example of
   such a string:
 
 .. code:: php
-    
+
     <?php
     $doc = <<<DOC
     Usage: my_program.php [-hso FILE] [--quiet | --verbose] [INPUT ...]
@@ -227,9 +228,9 @@ API
     DOC;
 
 
-The **return** value of ``handle()`` is a simple associative array with 
-options, arguments and commands as keys, spelled exactly like in your 
-help message. Long versions of options are given priority. For example, 
+The **return** value of ``handle()`` is a simple associative array with
+options, arguments and commands as keys, spelled exactly like in your
+help message. Long versions of options are given priority. For example,
 if you invoke the top example as::
 
     naval_fate.php ship Guardian move 100 150 --speed=15
@@ -240,14 +241,14 @@ the return dictionary will be:
 
     <?php
     array(
-      '--drifting'=>false,         'mine'=>false,
-      '--help'=>false,             'move'=>true,
-      '--moored'=>false,           'new'=>true,
-      '--speed'=>'15',             'remove'=>true,
-      '--version'=>false,          'set'=>true,
-      '<name>'=>array('Guardian'), 'ship'=>true,
-      '<x>'=>'100',                'shoot'=>false,
-      '<y>'=>'150'
+      '--drifting' => false,         'mine' => false,
+      '--help' => false,             'move' => true,
+      '--moored' => false,           'new' => true,
+      '--speed' => '15',             'remove' => true,
+      '--version' => false,          'set' => true,
+      '<name>' => array('Guardian'), 'ship' => true,
+      '<x>' => '100',                'shoot' => false,
+      '<y>' => '150'
     );
 
 
@@ -270,12 +271,12 @@ Help message consists of 2 sections:
       --verbose    print more text
 
 Sections consist of a header and a body. The section body can begin on
-the same line as the header, but if it spans multiple lines, it must be 
+the same line as the header, but if it spans multiple lines, it must be
 indented. A section is terminated by an empty line or a string with no
 indentation::
 
     Section header: Section body
-    
+
     Section header:
       Section body, which is indented at least
       one space or tab from the section header
@@ -304,16 +305,16 @@ Each pattern can consist of the following elements:
 - **<arguments>**, **ARGUMENTS**. Arguments are specified as either
   upper-case words, e.g. ``my_program.php CONTENT-PATH`` or words
   surrounded by angular brackets: ``my_program.php <content-path>``.
-  
-- **--options**.  Options are words started with dash (``-``), e.g.
-  ``--output``, ``-o``.  You can "stack" several of one-letter
+
+- **--options**. Options are words started with dash (``-``), e.g.
+  ``--output``, ``-o``. You can "stack" several of one-letter
   options, e.g. ``-oiv`` which will be the same as ``-o -i -v``. The
-  options can have arguments, e.g.  ``--input=FILE`` or ``-i FILE`` or
+  options can have arguments, e.g. ``--input=FILE`` or ``-i FILE`` or
   even ``-iFILE``. However it is important that you specify option
   descriptions if you want your option to have an argument, a default
   value, or specify synonymous short/long versions of option (see next
   section on option descriptions).
-  
+
 - **commands** are words that do *not* follow the described above
   conventions of ``--options`` or ``<arguments>`` or ``ARGUMENTS``,
   plus two special commands: dash "``-``" and double dash "``--``"
@@ -321,29 +322,29 @@ Each pattern can consist of the following elements:
 
 Use the following constructs to specify patterns:
 
-- **[ ]** (brackets) **optional** elements.  e.g.: ``my_program.php
+- **[ ]** (brackets) **optional** elements. e.g.: ``my_program.php
   [-hvqo FILE]``
-  
-- **( )** (parens) **required** elements.  All elements that are *not*
+
+- **( )** (parens) **required** elements. All elements that are *not*
   put in **[ ]** are also required, e.g.: ``my_program.php
   --path=<path> <file>...`` is the same as ``my_program.php
-  (--path=<path> <file>...)``.  (Note, "required options" might be not
+  (--path=<path> <file>...)``. (Note, "required options" might be not
   a good idea for your users).
-  
+
 - **|** (pipe) **mutually exclusive** elements. Group them using **(
   )** if one of the mutually exclusive elements is required:
   ``my_program.php (--clockwise | --counter-clockwise) TIME``. Group
   them using **[ ]** if none of the mutually-exclusive elements are
   required: ``my_program.php [--left | --right]``.
-  
+
 - **...** (ellipsis) **one or more** elements. To specify that
   arbitrary number of repeating elements could be accepted, use
-  ellipsis (``...``), e.g.  ``my_program.php FILE ...`` means one or
-  more ``FILE``-s are accepted.  If you want to accept zero or more
+  ellipsis (``...``), e.g. ``my_program.php FILE ...`` means one or
+  more ``FILE``-s are accepted. If you want to accept zero or more
   elements, use brackets, e.g.: ``my_program.php [FILE ...]``. Ellipsis
   works as a unary operator on the expression to the left.
-  
-- **[options]** (case sensitive) shortcut for any options.  You can
+
+- **[options]** (case sensitive) shortcut for any options. You can
   use it if you want to specify that the usage pattern could be
   provided with any options defined below in the option-descriptions
   and do not want to enumerate them all in usage-pattern.
@@ -377,7 +378,7 @@ I.e. invoked with ``my_program.php file1 file2 --path=./here
 Options section format
 ----------------------------------------------------------------------
 
-The **Option section** is an optional section that contains a list of 
+The **Option section** is an optional section that contains a list of
 options that can document or supplement your usage pattern.
 
 It is necessary to list option descriptions in order to specify:
@@ -424,7 +425,7 @@ The rules are as follows:
     --directory=DIR  Some directory [default: ./]
 
 - If the option is not repeatable, the value inside ``[default: ...]``
-  will be interpreted as string.  If it *is* repeatable, it will be
+  will be interpreted as string. If it *is* repeatable, it will be
   splited into a list on whitespace::
 
     Usage: my_program.php [--repeatable=<arg> --repeatable=<arg>]
@@ -446,7 +447,7 @@ Examples
 
 We have an extensive list of `examples
 <https://github.com/docopt/docopt/tree/master/examples>`_ which cover
-every aspect of functionality of **docopt**.  Try them out, read the
+every aspect of functionality of **docopt**. Try them out, read the
 source if in doubt.
 
 
@@ -467,13 +468,13 @@ Data validation
 ----------------------------------------------------------------------
 
 **docopt** does one thing and does it well: it implements your
-command-line interface.  However it does not validate the input data.
-You should supplement docopt with a validation library when your 
+command-line interface. However it does not validate the input data.
+You should supplement docopt with a validation library when your
 validation requirements extend beyond whether input is optional or required.
 
 
 Development
 ======================================================================
 
-See the `Python version's page <http://github.com/docopt/docopt>`_ for more info 
+See the `Python version's page <http://github.com/docopt/docopt>`_ for more info
 on developing.
