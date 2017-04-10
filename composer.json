@@ -22,6 +22,6 @@
         "phpunit/phpunit": "4.1.*"
     },
     "autoload": {
-        "classmap": ["src/docopt.php"]
+        "files": ["src/docopt.php"]
     }
 }
