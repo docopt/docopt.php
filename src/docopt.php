@@ -1367,7 +1367,7 @@ namespace Docopt
             }
             catch (ExitException $ex) {
                 $this->handleExit($ex);
-                return new Response([], $ex->status, $ex->getMessage());
+                return new Response(array(), $ex->status, $ex->getMessage());
             }
         }
         
