@@ -2,7 +2,6 @@
     "name": "docopt/docopt",
     "type": "library",
     "description": "Port of Python's docopt for PHP >=5.3",
-    "version": "1.0.3",
     "keywords": ["cli","docs"],
     "homepage": "http://github.com/docopt/docopt.php",
     "license": "MIT",
