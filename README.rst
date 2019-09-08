@@ -41,8 +41,8 @@ There is also at least one significant known issue with the upstream Python vers
 to the porting strategy used for the PHP version, it inherits the bug surface of the Python
 version (and if it doesn't, that's actually a bug!):
 
-- Issues with multi-word argument and option values [PHP report](https://github.com/docopt/docopt.php/issues/21)
-  [Upstream report](https://github.com/docopt/docopt/issues/207).
+- Issues with multi-word argument and option values (`PHP report <https://github.com/docopt/docopt.php/issues/21>`_,
+  `Upstream report <https://github.com/docopt/docopt/issues/207>`_)
 
 -----
 
