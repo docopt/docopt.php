@@ -34,9 +34,15 @@ of the reason.
   below about Usage and Option sections. See `issue 102
   <https://github.com/docopt/docopt/issues/102>`_ for more info.
 
-
 Please see the `Python version's README <https://github.com/docopt/docopt/blob/master/README.rst>`_ 
 for details of any new and breaking changes that are not specific to the PHP version.
+
+There is also at least one significant known issue with the upstream Python version. Due
+to the porting strategy used for the PHP version, it inherits the bug surface of the Python
+version (and if it doesn't, that's actually a bug!):
+
+- Issues with multi-word argument and option values [PHP report](https://github.com/docopt/docopt.php/issues/21)
+  [Upstream report](https://github.com/docopt/docopt/issues/207).
 
 -----
 
