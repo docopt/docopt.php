@@ -2,6 +2,7 @@
 ======================================================================
 
 .. image:: https://travis-ci.org/docopt/docopt.php.svg?branch=master
+    :target: https://travis-ci.org/docopt/docopt.php
 
 This is a straight PHP transliteration of Vladimir Keleshev's brilliant
 `docopt <https://github.com/docopt/docopt/>`_ Python library. There are a
