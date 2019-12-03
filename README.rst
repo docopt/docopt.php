@@ -105,7 +105,9 @@ Install ``docopt.php`` using `Composer <http://getcomposer.org>`_::
 Alternatively, you can just drop ``docopt.php`` file into your project--it is
 self-contained. `Get source on github <http://github.com/docopt/docopt.php>`_.
 
-``docopt.php`` is tested with PHP 5.4 and PHP 5.3.
+``docopt.php`` is tested with PHP 7; it should still work with PHP 5.3+ but this support
+will become increasingly fragile and will at some point cease to be supported at all. You
+should update to 7 as soon as you can.
 
 
 Testing
