@@ -10,12 +10,7 @@ before_install:
 # hhvm-3.6,: command not found
 matrix:
   include:
-    - { dist: trusty , php: "hhvm-3.3" }
-    - { dist: trusty , php: "hhvm-3.6" }
-    - { dist: trusty , php: "hhvm-3.9" }
-    - { dist: trusty , php: "hhvm-3.12" }
-    - { dist: trusty , php: "hhvm-3.15" }
-    - { dist: trusty , php: "hhvm-3.18" }
+    - { dist: trusty , php: "hhvm-3.30" }
     - { dist: trusty , php: "nightly" }
     - { dist: trusty , php: "7.4snapshot" }
     - { dist: trusty , php: "7.3" }
