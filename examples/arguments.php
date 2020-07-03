@@ -1,5 +1,6 @@
 <?php
-require __DIR__.'/../src/docopt.php';
+
+require __DIR__ . '/../src/docopt.php';
 
 $doc = <<<'DOCOPT'
 Process FILE and optionally apply correction to either left-hand side or
@@ -22,6 +23,7 @@ Options:
 
 DOCOPT;
 
-$result = Docopt::handle($doc, array('version'=>'1.0.0rc2'));
-foreach ($result as $k=>$v)
-    echo $k.': '.json_encode($v).PHP_EOL;
+$result = Docopt::handle($doc, array('version' => '1.0.0rc2'));
+foreach ($result as $k => $v) {
+    echo $k . ': ' . json_encode($v) . PHP_EOL;
+}
