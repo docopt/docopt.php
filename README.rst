@@ -251,9 +251,9 @@ the return dictionary will be:
     array(
       '--drifting'=>false,         'mine'=>false,
       '--help'=>false,             'move'=>true,
-      '--moored'=>false,           'new'=>true,
-      '--speed'=>'15',             'remove'=>true,
-      '--version'=>false,          'set'=>true,
+      '--moored'=>false,           'new'=>false,
+      '--speed'=>'15',             'remove'=>false,
+      '--version'=>false,          'set'=>false,
       '<name>'=>array('Guardian'), 'ship'=>true,
       '<x>'=>'100',                'shoot'=>false,
       '<y>'=>'150'
