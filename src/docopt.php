@@ -876,7 +876,7 @@ namespace Docopt
         public static function fromPattern($source)
         {
             $source = preg_replace('@([\[\]\(\)\|]|\.\.\.)@', ' $1 ', $source);
-            $source = preg_split('@\s+|(\S*<.*?'.'>)@', $source, null, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+            $source = preg_split('@\s+|(\S*<.*?'.'>)@', $source, 0, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
             
             return new static($source, 'LanguageError');
         }
@@ -1412,26 +1412,31 @@ namespace Docopt
             }
         }
 
+        #[\ReturnTypeWillChange]
         public function offsetExists($offset)
         {
             return isset($this->args[$offset]);
         }
 
+        #[\ReturnTypeWillChange]
         public function offsetGet($offset)
         {
             return $this->args[$offset];
         }
 
+        #[\ReturnTypeWillChange]
         public function offsetSet($offset, $value)
         {
             $this->args[$offset] = $value;
         }
 
+        #[\ReturnTypeWillChange]
         public function offsetUnset($offset)
         {
             unset($this->args[$offset]);
         }
 
+        #[\ReturnTypeWillChange]
         public function getIterator()
         {
             return new \ArrayIterator($this->args);
