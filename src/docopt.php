@@ -1207,7 +1207,7 @@ namespace Docopt
         foreach (parse_section('options:', $doc) as $s) {
             # FIXME corner case "bla: options: --foo"
             list (, $s) = explode(':', $s, 2);
-            $splitTmp = array_slice(preg_split("@\n[ \t]*(-\S+?)@", "\n".$s, null, PREG_SPLIT_DELIM_CAPTURE), 1);
+            $splitTmp = array_slice(preg_split("@\n[ \t]*(-\S+?)@", "\n".$s, 0, PREG_SPLIT_DELIM_CAPTURE), 1);
             $split = array();
             for ($cnt = count($splitTmp), $i=0; $i < $cnt; $i+=2) {
                 $split[] = $splitTmp[$i] . (isset($splitTmp[$i+1]) ? $splitTmp[$i+1] : '');
