@@ -1,25 +1,35 @@
 {
-    "name": "docopt/docopt",
-    "type": "library",
-    "description": "Port of Python's docopt for PHP >=5.3",
-    "keywords": ["cli","docs"],
-    "homepage": "http://github.com/docopt/docopt.php",
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "Blake Williams",
-            "email": "code@shabbyrobe.org",
-            "homepage": "http://docopt.org/",
-            "role": "Developer"
-        }
-    ],
-    "require": {
-        "php": ">=5.3.0"
-    },
-    "require-dev": {
-        "phpunit/phpunit": "4.1.*"
-    },
-    "autoload": {
-        "classmap": ["src/docopt.php"]
+  "name": "docopt/docopt",
+  "type": "library",
+  "description": "Port of Python's docopt for PHP >=5.3",
+  "keywords": [
+    "cli",
+    "docs"
+  ],
+  "homepage": "http://github.com/docopt/docopt.php",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Blake Williams",
+      "email": "code@shabbyrobe.org",
+      "homepage": "http://docopt.org/",
+      "role": "Developer"
     }
+  ],
+  "require": {
+    "php": ">=5.3.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "4.1.*",
+    "squizlabs/php_codesniffer": "^3.4"
+  },
+  "scripts": {
+    "phpcs": "phpcs",
+    "phpcbf": "phpcbf"
+  },
+  "autoload": {
+    "classmap": [
+      "src/docopt.php"
+    ]
+  }
 }
