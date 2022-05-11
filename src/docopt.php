@@ -876,7 +876,7 @@ namespace Docopt
         public static function fromPattern($source)
         {
             $source = preg_replace('@([\[\]\(\)\|]|\.\.\.)@', ' $1 ', $source);
-            $source = preg_split('@\s+|(\S*<.*?'.'>)@', $source, null, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+            $source = preg_split('@\s+|(\S*<.*?'.'>)@', $source, 0, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
             
             return new static($source, 'LanguageError');
         }
@@ -1207,7 +1207,7 @@ namespace Docopt
         foreach (parse_section('options:', $doc) as $s) {
             # FIXME corner case "bla: options: --foo"
             list (, $s) = explode(':', $s, 2);
-            $splitTmp = array_slice(preg_split("@\n[ \t]*(-\S+?)@", "\n".$s, null, PREG_SPLIT_DELIM_CAPTURE), 1);
+            $splitTmp = array_slice(preg_split("@\n[ \t]*(-\S+?)@", "\n".$s, 0, PREG_SPLIT_DELIM_CAPTURE), 1);
             $split = array();
             for ($cnt = count($splitTmp), $i=0; $i < $cnt; $i+=2) {
                 $split[] = $splitTmp[$i] . (isset($splitTmp[$i+1]) ? $splitTmp[$i+1] : '');
@@ -1412,26 +1412,31 @@ namespace Docopt
             }
         }
 
+        #[\ReturnTypeWillChange]
         public function offsetExists($offset)
         {
             return isset($this->args[$offset]);
         }
 
+        #[\ReturnTypeWillChange]
         public function offsetGet($offset)
         {
             return $this->args[$offset];
         }
 
+        #[\ReturnTypeWillChange]
         public function offsetSet($offset, $value)
         {
             $this->args[$offset] = $value;
         }
 
+        #[\ReturnTypeWillChange]
         public function offsetUnset($offset)
         {
             unset($this->args[$offset]);
         }
 
+        #[\ReturnTypeWillChange]
         public function getIterator()
         {
             return new \ArrayIterator($this->args);
