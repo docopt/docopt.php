@@ -11,41 +11,86 @@ require $testPath.'/lib/TestCase.php';
 require $testPath.'/lib/LanguageAgnosticTest.php';
 require $testPath.'/lib/PythonPortedTest.php';
 
-$options = array(
-    'filter'        => null,
-    'coverage-html' => null,
-);
-$options = array_merge(
-    $options,
-    getopt('', array('filter:', 'coverage-html:'))
-);
+function dump($mixed = null) {
+  ob_start();
+  var_dump($mixed);
+  $content = ob_get_contents();
+  ob_end_clean();
+  return rtrim($content);
+}
 
 $pyTestFile = $basePath.'/py/testcases.docopt';
 if (!file_exists($pyTestFile)) {
     die("Please ensure you have loaded the git submodules\n");
 }
 
-$suite = new PHPUnit_Framework_TestSuite();
-$suite->addTest(new PHPUnit_Framework_TestSuite('Docopt\Test\PythonPortedTest'));
-$suite->addTest(Docopt\Test\LanguageAgnosticTest::createSuite($pyTestFile));
-$suite->addTest(Docopt\Test\LanguageAgnosticTest::createSuite("$basePath/test/extra.docopt"));
+$verbose = false;
+$dumpMode = 'serialize'; // or vardump
 
-$args = array(
-    'filter'=>$options['filter'],
-    'strict'=>true,
-    'processIsolation'=>false,
-    'backupGlobals'=>false,
-    'backupStaticAttributes'=>false,
-    'convertErrorsToExceptions'=>true,
-    'convertNoticesToExceptions'=>true,
-    'convertWarningsToExceptions'=>true,
-    'addUncoveredFilesFromWhitelist'=>true,
-    'processUncoveredFilesFromWhitelist'=>true,
-);
-if ($options['coverage-html']) {
-    $args['coverageHtml'] = $options['coverage-html'];
+$suite = [];
+$suite[] = new \Docopt\Test\PythonPortedTest();
+$suite = array_merge($suite, \Docopt\Test\LanguageAgnosticTest::createSuite($pyTestFile));
+$suite = array_merge($suite, \Docopt\Test\LanguageAgnosticTest::createSuite("$basePath/test/extra.docopt"));
+
+$tests = 0;
+$passed = 0;
+$failed = 0;
+
+$details = [];
+
+foreach ($suite as $test) {
+    $rc = new ReflectionClass($test);
+    foreach ($rc->getMethods() as $method) {
+        if (substr($method->getName(), 0, 4) !== "test") {
+            continue;
+        }
+
+        $tests++;
+        $name = substr($method->getName(), 4);
+        if (!$name) $name = $test->name;
+
+        try {
+            $method->invoke($test);
+            if ($verbose) {
+                echo "PASS: {$rc->getName()} {$name}\n";
+            }
+            $passed++;
+
+        } catch (\Docopt\Test\ExpectationFailed $e) {
+            echo "FAIL: {$rc->getName()} {$name} {$e->getMessage()}\n";
+            $details[] = [
+                "suite" => $rc->getName(),
+                "name" => $name,
+                "message" => $e->getMessage(),
+                "vardump" => [
+                    "want" => dump($e->expected),
+                    "got" => dump($e->value),
+                ],
+                "serialize" => [
+                    "want" => serialize($e->expected),
+                    "got" => serialize($e->value),
+                ],
+            ];
+            $failed++;
+        }
+    }
 }
 
-$runner = new PHPUnit_TextUI_TestRunner();
-$runner->doRun($suite, $args);
+if (count($details)) {
+    echo "\n";
+    echo "Failure details:\n";
+    foreach ($details as $failure) {
+        $dump = $failure[$dumpMode];
+        echo "{$failure['suite']} {$failure['name']}\n";
+        echo "message: {$failure['message']}\n";
+        echo "want: {$dump['want']}\n";
+        echo "got:  {$dump['got']}\n";
+        echo "\n";
+    }
+}
 
+echo "{$tests} test(s), {$passed} passed, {$failed} failed\n";
+
+if ($failed > 0) {
+    exit(2);
+}
