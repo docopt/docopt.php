@@ -1,7 +1,7 @@
 <?php
 namespace Docopt\Test;
 
-class LanguageAgnosticTest implements \PHPUnit_Framework_Test, \PHPUnit_Framework_SelfDescribing
+class LanguageAgnosticTest extends TestCase
 {
 	public static function createSuite($testFile)
 	{
@@ -9,7 +9,7 @@ class LanguageAgnosticTest implements \PHPUnit_Framework_Test, \PHPUnit_Framewor
 			throw new \InvalidArgumentException("Test file $testFile does not exist");
         }
 		
-		$suite = new \PHPUnit_Framework_TestSuite;
+		$suite = [];
 		
 		$raw = file_get_contents($testFile);
 		$raw = trim(preg_replace("/#.*$/m", "", $raw));
@@ -44,7 +44,7 @@ class LanguageAgnosticTest implements \PHPUnit_Framework_Test, \PHPUnit_Framewor
 				
 				$tName = $name ? ($name.$nIdx) : 'unnamed'.$idx;
                 $test = new self($tName, $doc, $prog, $argv, $expect);
-				$suite->addTest($test);
+				$suite[] = $test;
 				$idx++;
 			}
 		}
@@ -53,7 +53,7 @@ class LanguageAgnosticTest implements \PHPUnit_Framework_Test, \PHPUnit_Framewor
 	}
 
     /** @var string */
-    private $name;
+    public $name;
 
     /** @var string */
     private $doc;
@@ -80,25 +80,18 @@ class LanguageAgnosticTest implements \PHPUnit_Framework_Test, \PHPUnit_Framewor
 		
 		$this->expect = $expect;
 	}
-	
-	public function run(\PHPUnit_Framework_TestResult $result=null)
+
+	public function test()
     {
-        if (!$result) {
-            $result = new \PHPUnit_Framework_TestResult();
-        }
-        
         $opt = null;
-		
-		\PHP_Timer::start();
-		$result->startTest($this);
-		
+
 		try {
 		    $opt = \Docopt::handle($this->doc, array('argv'=>$this->argv, 'exit'=>false));
 		}
 		catch (\Exception $ex) {
 			// gulp
 		}
-		
+
 		$found = null;
 		if ($opt) {
 		    if (!$opt->success) {
@@ -109,27 +102,13 @@ class LanguageAgnosticTest implements \PHPUnit_Framework_Test, \PHPUnit_Framewor
 		        $found = $opt->args;
 		    }
 		}
-		
-		$time = \PHP_Timer::stop();
-		try {
-        	\PHPUnit_Framework_Assert::assertEquals($this->expect, $found);
-		}
-        catch (\PHPUnit_Framework_AssertionFailedError $e) {
-            $result->addFailure($this, $e, $time);
-        }
-        
-		$result->endTest($this, $time);
 
-        return $result;
-    }
-    
-    public function count()
-    {
-        return 1;
-    }
-    
-    public function toString()
-    {
-    	return __CLASS__.'::'.$this->name.' - "'.$this->prog.($this->argv ? ' '.$this->argv : '').'"';
+        ksort($this->expect);
+        array_walk_recursive($this->expect, function($item) { if (is_array($item)) ksort($item); });
+
+        ksort($found);
+        array_walk_recursive($found, function($item) { if (is_array($item)) ksort($item); });
+
+        $this->assertEquals($this->expect, $found);
     }
 }
