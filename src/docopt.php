@@ -1455,8 +1455,12 @@ namespace Docopt
          * @param ?int $pos
          * @param Pattern $pattern
          */
-        public function __construct($pos, Pattern $pattern=null)
+        public function __construct($pos, $pattern=null)
         {
+            if ($pattern !== null && !$pattern instanceof Pattern) {
+                throw new \InvalidArgumentException();
+            }
+
             $this->pos = $pos;
             $this->pattern = $pattern;
         }
